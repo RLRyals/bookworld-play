@@ -1,0 +1,64 @@
+{
+  "id": "manifest-a-alley",
+  "title": "Manifest A — Alley (placeholder)",
+  "panorama": {
+    "src": "pano.jpg",
+    "baseYaw": 3.27,
+    "initialPitch": -0.22
+  },
+  "description": "A dim alley behind a row of shopfronts. Neon light pools on wet pavement. Placeholder imagery only — no story canon.",
+  "worldTexture": [
+    "placeholder location — not tied to any story canon",
+    "night, wet pavement, neon signage"
+  ],
+  "hotspots": [
+    {
+      "id": "case-files",
+      "yaw": -0.78,
+      "elevation": 0.06,
+      "label": "The Case Files",
+      "trigger": {
+        "type": "prose",
+        "text": "A stack of dog-eared files sits on a crate, rain-swollen at the corners."
+      }
+    },
+    {
+      "id": "suspect",
+      "yaw": 0.78,
+      "elevation": 0.07,
+      "label": "The Suspect",
+      "trigger": {
+        "type": "prose",
+        "text": "A shape lingers at the mouth of the alley, half-lit, watching."
+      }
+    },
+    {
+      "id": "tip-line",
+      "yaw": 1.95,
+      "elevation": 0.05,
+      "label": "The Tip Line",
+      "trigger": {
+        "type": "prose",
+        "text": "A payphone, receiver hanging loose, still ticking with static."
+      }
+    },
+    {
+      "id": "cutscene-hotspot",
+      "yaw": -2.10,
+      "elevation": 0.03,
+      "label": "Play Cutscene",
+      "trigger": {
+        "type": "cutscene",
+        "cutsceneId": "reveal"
+      }
+    }
+  ],
+  "cutscenes": [
+    {
+      "id": "reveal",
+      "video": "cutscene.mp4",
+      "poster": null,
+      "armedByHotspot": "cutscene-hotspot"
+    }
+  ]
+}

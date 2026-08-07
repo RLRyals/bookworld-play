@@ -1,0 +1,64 @@
+{
+  "id": "manifest-b-overlook",
+  "title": "Manifest B — Overlook (placeholder, swap test)",
+  "panorama": {
+    "src": "pano.jpg",
+    "baseYaw": 0.0,
+    "initialPitch": -0.1
+  },
+  "description": "A rooftop overlook above a sprawl of city lights. Placeholder imagery only — no story canon. Proves the loader needs zero code changes for a new location.",
+  "worldTexture": [
+    "placeholder location — not tied to any story canon",
+    "open sky, distant skyline, wind"
+  ],
+  "hotspots": [
+    {
+      "id": "skyline",
+      "yaw": 0.4,
+      "elevation": 0.1,
+      "label": "The Skyline",
+      "trigger": {
+        "type": "prose",
+        "text": "Lights stretch to the horizon, a grid of other people's evenings."
+      }
+    },
+    {
+      "id": "ledge",
+      "yaw": -1.1,
+      "elevation": -0.05,
+      "label": "The Ledge",
+      "trigger": {
+        "type": "prose",
+        "text": "The drop is farther than it looks from here."
+      }
+    },
+    {
+      "id": "antenna",
+      "yaw": 2.4,
+      "elevation": 0.2,
+      "label": "The Antenna",
+      "trigger": {
+        "type": "prose",
+        "text": "A radio mast ticks faintly, warm from the day's sun."
+      }
+    },
+    {
+      "id": "cutscene-hotspot-b",
+      "yaw": -2.6,
+      "elevation": 0.0,
+      "label": "Play Cutscene",
+      "trigger": {
+        "type": "cutscene",
+        "cutsceneId": "reveal-b"
+      }
+    }
+  ],
+  "cutscenes": [
+    {
+      "id": "reveal-b",
+      "video": "cutscene.mp4",
+      "poster": null,
+      "armedByHotspot": "cutscene-hotspot-b"
+    }
+  ]
+}

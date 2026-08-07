@@ -1,0 +1,2604 @@
+{
+  "id": "world-a-graybox-street",
+  "title": "World A — Gray-box Street (placeholder)",
+  "description": "A short city block at night, gray-box placeholder geometry. A wet two-lane street runs north to south between tall building masses. Neon signage glows on the facades. An alley mouth opens on the west side, halfway along the block, and dead-ends at a single lit doorway. Placeholder geometry only — no story canon.",
+  "worldTexture": [
+    "placeholder location — not tied to any story canon",
+    "night, low fog, rain-slicked asphalt",
+    "neon signage: green constant plus one accent colour",
+    "no vehicles, no people — the block is empty"
+  ],
+  "spawn": {
+    "position": [
+      3.2,
+      0,
+      20
+    ],
+    "yaw": 0.06,
+    "pitch": -0.03
+  },
+  "player": {
+    "eyeHeight": 1.65,
+    "walkSpeed": 2.8,
+    "radius": 0.45
+  },
+  "palette": {
+    "primary": "#2fe6a4",
+    "accent": "#ff2f6d",
+    "fogColor": "#050b0d",
+    "fogDensity": 0.021
+  },
+  "triggers": [
+    {
+      "id": "alley-mouth",
+      "label": "The Alley Mouth",
+      "mode": "auto",
+      "once": true,
+      "shape": "radius",
+      "position": [
+        -5.5,
+        0,
+        0
+      ],
+      "radius": 3,
+      "srHint": "The alley opens to the west.",
+      "trigger": {
+        "type": "cutscene",
+        "cutsceneId": "street-arrival"
+      }
+    },
+    {
+      "id": "alley-door",
+      "label": "The Doorway",
+      "mode": "prompted",
+      "once": false,
+      "shape": "radius",
+      "radius": 2.4,
+      "prompt": "Press E to open the door",
+      "srHint": "A single lit doorway at the dead end of the alley.",
+      "trigger": {
+        "type": "cutscene",
+        "cutsceneId": "doorway-reveal"
+      },
+      "anchor": "door-panel",
+      "offset": [
+        1.18,
+        -1.25,
+        0
+      ]
+    },
+    {
+      "id": "east-sign",
+      "label": "The Neon Sign",
+      "mode": "prompted",
+      "once": false,
+      "shape": "box",
+      "bounds": [
+        3,
+        4,
+        5
+      ],
+      "prompt": "Press E to read the sign",
+      "srHint": "A buzzing neon sign hangs low over the east sidewalk.",
+      "trigger": {
+        "type": "prose",
+        "text": "The sign has lost half its letters to the weather. What is left of it still buzzes, throwing green across the wet pavement in a slow, uneven pulse."
+      },
+      "anchor": "neon-hotel",
+      "offset": [
+        -2.45,
+        -5.4,
+        0
+      ]
+    }
+  ],
+  "cutscenes": [
+    {
+      "id": "street-arrival",
+      "title": "Arrival",
+      "video": "../../scenes/manifest-a/cutscene.mp4",
+      "poster": null
+    },
+    {
+      "id": "doorway-reveal",
+      "title": "The Door Opens",
+      "video": "../../scenes/manifest-b/cutscene.mp4",
+      "poster": null
+    }
+  ],
+  "bounds": {
+    "minX": -21.6,
+    "maxX": 8.6,
+    "minZ": -33.6,
+    "maxZ": 33.6
+  },
+  "geometry": {
+    "seed": 20260806,
+    "envCapture": {
+      "position": [
+        0,
+        3.2,
+        0
+      ]
+    },
+    "materials": {
+      "road": {
+        "kind": "flat",
+        "color": "#070b0d",
+        "roughness": 0.17,
+        "metalness": 0.92,
+        "reflective": true,
+        "envMapIntensity": 0.85
+      },
+      "alleyFloor": {
+        "kind": "flat",
+        "color": "#080b0c",
+        "roughness": 0.28,
+        "metalness": 0.75,
+        "reflective": true,
+        "envMapIntensity": 0.5
+      },
+      "walk": {
+        "kind": "flat",
+        "color": "#0c1013",
+        "roughness": 0.74,
+        "metalness": 0.14
+      },
+      "curb": {
+        "kind": "flat",
+        "color": "#12171a",
+        "roughness": 0.82,
+        "metalness": 0.05
+      },
+      "dash": {
+        "kind": "flat",
+        "color": "#2a2f2c",
+        "roughness": 0.5,
+        "metalness": 0.2,
+        "emissive": "#0c1a14",
+        "emissiveIntensity": 1
+      },
+      "mass-0": {
+        "kind": "flat",
+        "color": "#1a1e22",
+        "roughness": 0.94,
+        "metalness": 0.02
+      },
+      "mass-1": {
+        "kind": "flat",
+        "color": "#22272c",
+        "roughness": 0.9,
+        "metalness": 0.03
+      },
+      "mass-2": {
+        "kind": "flat",
+        "color": "#15191d",
+        "roughness": 0.96,
+        "metalness": 0.02
+      },
+      "facade-west-north": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.2
+      },
+      "facade-west-south": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.14
+      },
+      "facade-east-north": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.11
+      },
+      "facade-east-south": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.22
+      },
+      "facade-cross-street": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.16
+      },
+      "hoarding": {
+        "kind": "flat",
+        "color": "#191d1a",
+        "roughness": 0.95,
+        "metalness": 0
+      },
+      "hoarding-strip": {
+        "kind": "tint",
+        "color": "#ff2f6d",
+        "opacity": 1,
+        "tintFrom": "accent",
+        "tintMix": 0.5
+      },
+      "door-frame": {
+        "kind": "flat",
+        "color": "#2a2f33",
+        "roughness": 0.7,
+        "metalness": 0.35
+      },
+      "door-panel": {
+        "kind": "flat",
+        "color": "#101416",
+        "roughness": 0.55,
+        "metalness": 0.5
+      },
+      "door-hood": {
+        "kind": "flat",
+        "color": "#22282b",
+        "roughness": 0.8
+      },
+      "door-bulb": {
+        "kind": "tint",
+        "tintFrom": "accent",
+        "tintMix": 0.35
+      },
+      "door-halo": {
+        "kind": "glow",
+        "colorFrom": "accent",
+        "opacity": 0.38
+      },
+      "door-pool": {
+        "kind": "glow",
+        "colorFrom": "accent",
+        "opacity": 0.3
+      },
+      "neon-hotel-sign": {
+        "kind": "neonSign",
+        "text": "HOTEL",
+        "colorFrom": "primary",
+        "vertical": false
+      },
+      "neon-hotel-streak": {
+        "kind": "streak",
+        "colorFrom": "primary",
+        "opacity": 0.31
+      },
+      "neon-hotel-halo": {
+        "kind": "glow",
+        "colorFrom": "primary",
+        "opacity": 0.13
+      },
+      "neon-bar-sign": {
+        "kind": "neonSign",
+        "text": "BAR",
+        "colorFrom": "accent",
+        "vertical": false
+      },
+      "neon-bar-streak": {
+        "kind": "streak",
+        "colorFrom": "accent",
+        "opacity": 0.341
+      },
+      "neon-bar-halo": {
+        "kind": "glow",
+        "colorFrom": "accent",
+        "opacity": 0.13
+      },
+      "neon-open-sign": {
+        "kind": "neonSign",
+        "text": "OPEN",
+        "colorFrom": "primary",
+        "vertical": true
+      },
+      "neon-open-streak": {
+        "kind": "streak",
+        "colorFrom": "primary",
+        "opacity": 0.26039999999999996
+      },
+      "neon-open-halo": {
+        "kind": "glow",
+        "colorFrom": "primary",
+        "opacity": 0.13
+      },
+      "neon-loading-sign": {
+        "kind": "neonSign",
+        "text": "LOADING",
+        "colorFrom": "primary",
+        "vertical": false
+      },
+      "neon-loading-streak": {
+        "kind": "streak",
+        "colorFrom": "primary",
+        "opacity": 0.248
+      },
+      "neon-loading-halo": {
+        "kind": "glow",
+        "colorFrom": "primary",
+        "opacity": 0.13
+      },
+      "neon-crossst-sign": {
+        "kind": "neonSign",
+        "text": "CROSS ST",
+        "colorFrom": "accent",
+        "vertical": false
+      },
+      "neon-crossst-streak": {
+        "kind": "streak",
+        "colorFrom": "accent",
+        "opacity": 0.186
+      },
+      "neon-crossst-halo": {
+        "kind": "glow",
+        "colorFrom": "accent",
+        "opacity": 0.13
+      },
+      "lamp-pole": {
+        "kind": "flat",
+        "color": "#171b1e",
+        "roughness": 0.6,
+        "metalness": 0.7
+      },
+      "lamp-lens": {
+        "kind": "tint",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff"
+      },
+      "lamp-0-shaft": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "opacity": 0.038
+      },
+      "lamp-0-pool": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "opacity": 0.085
+      },
+      "lamp-1-shaft": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "opacity": 0.038
+      },
+      "lamp-1-pool": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "opacity": 0.085
+      },
+      "lamp-2-shaft": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "opacity": 0.038
+      },
+      "lamp-2-pool": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "opacity": 0.085
+      },
+      "lamp-3-shaft": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "opacity": 0.038
+      },
+      "lamp-3-pool": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "opacity": 0.085
+      },
+      "dumpster": {
+        "kind": "flat",
+        "color": "#14201b",
+        "roughness": 0.85,
+        "metalness": 0.25
+      },
+      "crate": {
+        "kind": "flat",
+        "color": "#1d1f1c",
+        "roughness": 0.95
+      },
+      "fire-escape": {
+        "kind": "flat",
+        "color": "#0f1315",
+        "roughness": 0.8,
+        "metalness": 0.6
+      },
+      "alley-lamp-hood": {
+        "kind": "flat",
+        "color": "#14181a",
+        "roughness": 0.85
+      },
+      "alley-lamp-lens": {
+        "kind": "tint",
+        "tintFrom": "primary",
+        "tintMix": 0.4
+      },
+      "alley-lamp-0-halo": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "opacity": 0.16
+      },
+      "alley-lamp-0-pool": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "opacity": 0.1
+      },
+      "alley-lamp-1-halo": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "opacity": 0.16
+      },
+      "alley-lamp-1-pool": {
+        "kind": "glow",
+        "tintFrom": "primary",
+        "opacity": 0.1
+      },
+      "awning": {
+        "kind": "flat",
+        "color": "#0c0f11",
+        "roughness": 0.95
+      },
+      "shop-a-glass": {
+        "kind": "shopfront",
+        "colorFrom": "primary"
+      },
+      "shop-a-wash": {
+        "kind": "glow",
+        "colorFrom": "primary",
+        "opacity": 0.1
+      },
+      "shop-b-glass": {
+        "kind": "shopfront",
+        "colorFrom": "accent"
+      },
+      "shop-b-wash": {
+        "kind": "glow",
+        "colorFrom": "accent",
+        "opacity": 0.1
+      },
+      "shop-c-glass": {
+        "kind": "shopfront",
+        "colorFrom": "primary"
+      },
+      "shop-c-wash": {
+        "kind": "glow",
+        "colorFrom": "primary",
+        "opacity": 0.1
+      },
+      "shop-d-glass": {
+        "kind": "shopfront",
+        "colorFrom": "accent"
+      },
+      "shop-d-wash": {
+        "kind": "glow",
+        "colorFrom": "accent",
+        "opacity": 0.1
+      },
+      "puddle": {
+        "kind": "puddle",
+        "color": "#070c0e",
+        "roughness": 0.04,
+        "metalness": 1,
+        "envMapIntensity": 1.5
+      }
+    },
+    "elements": [
+      {
+        "id": "road",
+        "type": "plane",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "size": [
+          18,
+          80
+        ],
+        "orientation": "horizontal",
+        "material": "road",
+        "ground": true
+      },
+      {
+        "id": "alley-floor",
+        "type": "plane",
+        "position": [
+          -16,
+          0.001,
+          0
+        ],
+        "size": [
+          14,
+          6
+        ],
+        "orientation": "horizontal",
+        "material": "alleyFloor",
+        "ground": true
+      },
+      {
+        "id": "sidewalk-w",
+        "type": "box",
+        "position": [
+          -7.5,
+          0.08,
+          0
+        ],
+        "size": [
+          3,
+          0.16,
+          68
+        ],
+        "material": "walk",
+        "collider": false
+      },
+      {
+        "id": "curb-w",
+        "type": "box",
+        "position": [
+          -6,
+          0.1,
+          0
+        ],
+        "size": [
+          0.24,
+          0.2,
+          68
+        ],
+        "material": "curb",
+        "collider": false
+      },
+      {
+        "id": "sidewalk-e",
+        "type": "box",
+        "position": [
+          7.5,
+          0.08,
+          0
+        ],
+        "size": [
+          3,
+          0.16,
+          68
+        ],
+        "material": "walk",
+        "collider": false
+      },
+      {
+        "id": "curb-e",
+        "type": "box",
+        "position": [
+          6,
+          0.1,
+          0
+        ],
+        "size": [
+          0.24,
+          0.2,
+          68
+        ],
+        "material": "curb",
+        "collider": false
+      },
+      {
+        "id": "dash-0",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          -32
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-1",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          -26
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-2",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          -20
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-3",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          -14
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-4",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          -8
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-5",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          -2
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-6",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          4
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-7",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          10
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-8",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          16
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-9",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          22
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-10",
+        "type": "box",
+        "position": [
+          0,
+          0.02,
+          28
+        ],
+        "size": [
+          0.22,
+          0.02,
+          2.4
+        ],
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "west-north",
+        "type": "box",
+        "position": [
+          -17.5,
+          11,
+          -18.5
+        ],
+        "size": [
+          17,
+          22,
+          31
+        ],
+        "material": "mass-0",
+        "collider": true
+      },
+      {
+        "id": "west-north-facade-0",
+        "type": "plane",
+        "position": [
+          -8.98,
+          11,
+          -18.5
+        ],
+        "size": [
+          31,
+          22
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-west-north",
+        "collider": false
+      },
+      {
+        "id": "west-south",
+        "type": "box",
+        "position": [
+          -17.5,
+          8.5,
+          18.5
+        ],
+        "size": [
+          17,
+          17,
+          31
+        ],
+        "material": "mass-1",
+        "collider": true
+      },
+      {
+        "id": "west-south-facade-0",
+        "type": "plane",
+        "position": [
+          -8.98,
+          8.5,
+          18.5
+        ],
+        "size": [
+          31,
+          17
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-west-south",
+        "collider": false
+      },
+      {
+        "id": "east-north",
+        "type": "box",
+        "position": [
+          17.5,
+          13,
+          -18
+        ],
+        "size": [
+          17,
+          26,
+          32
+        ],
+        "material": "mass-2",
+        "collider": true
+      },
+      {
+        "id": "east-north-facade-0",
+        "type": "plane",
+        "position": [
+          8.98,
+          13,
+          -18
+        ],
+        "size": [
+          32,
+          26
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-east-north",
+        "collider": false
+      },
+      {
+        "id": "east-south",
+        "type": "box",
+        "position": [
+          17.5,
+          9.5,
+          16
+        ],
+        "size": [
+          17,
+          19,
+          36
+        ],
+        "material": "mass-0",
+        "collider": true
+      },
+      {
+        "id": "east-south-facade-0",
+        "type": "plane",
+        "position": [
+          8.98,
+          9.5,
+          16
+        ],
+        "size": [
+          36,
+          19
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-east-south",
+        "collider": false
+      },
+      {
+        "id": "cross-street",
+        "type": "box",
+        "position": [
+          0,
+          14,
+          -38
+        ],
+        "size": [
+          52,
+          28,
+          8
+        ],
+        "material": "mass-1",
+        "collider": true
+      },
+      {
+        "id": "cross-street-facade-0",
+        "type": "plane",
+        "position": [
+          0,
+          14,
+          -33.98
+        ],
+        "size": [
+          52,
+          28
+        ],
+        "yaw": 0,
+        "orientation": "vertical",
+        "material": "facade-cross-street",
+        "collider": false
+      },
+      {
+        "id": "alley-back",
+        "type": "box",
+        "position": [
+          -24,
+          9,
+          0
+        ],
+        "size": [
+          4,
+          18,
+          6
+        ],
+        "material": "mass-2",
+        "collider": true
+      },
+      {
+        "id": "hoarding",
+        "type": "box",
+        "position": [
+          0,
+          1.8,
+          36
+        ],
+        "size": [
+          52,
+          3.6,
+          4
+        ],
+        "material": "hoarding",
+        "collider": true
+      },
+      {
+        "id": "hoarding-strip-0",
+        "type": "emissiveQuad",
+        "position": [
+          -8,
+          1.7,
+          33.96
+        ],
+        "size": [
+          0.5,
+          2.2
+        ],
+        "yaw": 3.141592653589793,
+        "orientation": "vertical",
+        "material": "hoarding-strip",
+        "collider": false
+      },
+      {
+        "id": "hoarding-strip-1",
+        "type": "emissiveQuad",
+        "position": [
+          -4,
+          1.7,
+          33.96
+        ],
+        "size": [
+          0.5,
+          2.2
+        ],
+        "yaw": 3.141592653589793,
+        "orientation": "vertical",
+        "material": "hoarding-strip",
+        "collider": false
+      },
+      {
+        "id": "hoarding-strip-2",
+        "type": "emissiveQuad",
+        "position": [
+          0,
+          1.7,
+          33.96
+        ],
+        "size": [
+          0.5,
+          2.2
+        ],
+        "yaw": 3.141592653589793,
+        "orientation": "vertical",
+        "material": "hoarding-strip",
+        "collider": false
+      },
+      {
+        "id": "hoarding-strip-3",
+        "type": "emissiveQuad",
+        "position": [
+          4,
+          1.7,
+          33.96
+        ],
+        "size": [
+          0.5,
+          2.2
+        ],
+        "yaw": 3.141592653589793,
+        "orientation": "vertical",
+        "material": "hoarding-strip",
+        "collider": false
+      },
+      {
+        "id": "hoarding-strip-4",
+        "type": "emissiveQuad",
+        "position": [
+          8,
+          1.7,
+          33.96
+        ],
+        "size": [
+          0.5,
+          2.2
+        ],
+        "yaw": 3.141592653589793,
+        "orientation": "vertical",
+        "material": "hoarding-strip",
+        "collider": false
+      },
+      {
+        "id": "door-frame",
+        "type": "box",
+        "position": [
+          -21.9,
+          1.5,
+          0
+        ],
+        "size": [
+          0.35,
+          3,
+          1.9
+        ],
+        "material": "door-frame",
+        "collider": false
+      },
+      {
+        "id": "door-panel",
+        "type": "box",
+        "position": [
+          -21.78,
+          1.25,
+          0
+        ],
+        "size": [
+          0.12,
+          2.5,
+          1.4
+        ],
+        "material": "door-panel",
+        "collider": false
+      },
+      {
+        "id": "door-hood",
+        "type": "box",
+        "position": [
+          -21.7,
+          3.1,
+          0
+        ],
+        "size": [
+          0.5,
+          0.14,
+          1
+        ],
+        "material": "door-hood",
+        "collider": false
+      },
+      {
+        "id": "door-bulb",
+        "type": "emissiveQuad",
+        "position": [
+          -21.55,
+          2.98,
+          0
+        ],
+        "size": [
+          0.9,
+          0.36
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "door-bulb",
+        "collider": false
+      },
+      {
+        "id": "door-halo",
+        "type": "emissiveQuad",
+        "position": [
+          -21.3,
+          2.95,
+          0
+        ],
+        "size": [
+          4.2,
+          4.2
+        ],
+        "orientation": "vertical",
+        "material": "door-halo",
+        "collider": false
+      },
+      {
+        "id": "door-pool",
+        "type": "emissiveQuad",
+        "position": [
+          -20.4,
+          0.02,
+          0
+        ],
+        "size": [
+          5,
+          5.6
+        ],
+        "orientation": "horizontal",
+        "material": "door-pool",
+        "collider": false
+      },
+      {
+        "id": "neon-hotel",
+        "type": "emissiveQuad",
+        "position": [
+          8.85,
+          5.4,
+          -14
+        ],
+        "size": [
+          5.2,
+          1.6
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "neon-hotel-sign",
+        "collider": false
+      },
+      {
+        "id": "neon-hotel-streak",
+        "type": "emissiveQuad",
+        "position": [
+          3.3499999999999996,
+          0.02,
+          -14
+        ],
+        "size": [
+          7.800000000000001,
+          13
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "horizontal",
+        "material": "neon-hotel-streak",
+        "collider": false
+      },
+      {
+        "id": "neon-hotel-halo",
+        "type": "emissiveQuad",
+        "position": [
+          8.19,
+          5.4,
+          -14
+        ],
+        "size": [
+          9.360000000000001,
+          4.16
+        ],
+        "orientation": "vertical",
+        "material": "neon-hotel-halo",
+        "collider": false
+      },
+      {
+        "id": "neon-bar",
+        "type": "emissiveQuad",
+        "position": [
+          -8.85,
+          3.9,
+          12
+        ],
+        "size": [
+          3.2,
+          1.1
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "neon-bar-sign",
+        "collider": false
+      },
+      {
+        "id": "neon-bar-streak",
+        "type": "emissiveQuad",
+        "position": [
+          -3.3499999999999996,
+          0.02,
+          12
+        ],
+        "size": [
+          4.800000000000001,
+          13
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "horizontal",
+        "material": "neon-bar-streak",
+        "collider": false
+      },
+      {
+        "id": "neon-bar-halo",
+        "type": "emissiveQuad",
+        "position": [
+          -8.19,
+          3.9,
+          12
+        ],
+        "size": [
+          5.760000000000001,
+          2.8600000000000003
+        ],
+        "orientation": "vertical",
+        "material": "neon-bar-halo",
+        "collider": false
+      },
+      {
+        "id": "neon-open",
+        "type": "emissiveQuad",
+        "position": [
+          8.85,
+          8.5,
+          6
+        ],
+        "size": [
+          1.5,
+          4.6
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "neon-open-sign",
+        "collider": false
+      },
+      {
+        "id": "neon-open-streak",
+        "type": "emissiveQuad",
+        "position": [
+          3.3499999999999996,
+          0.02,
+          6
+        ],
+        "size": [
+          2.25,
+          13
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "horizontal",
+        "material": "neon-open-streak",
+        "collider": false
+      },
+      {
+        "id": "neon-open-halo",
+        "type": "emissiveQuad",
+        "position": [
+          8.299999999999999,
+          8.5,
+          6
+        ],
+        "size": [
+          2.7,
+          11.959999999999999
+        ],
+        "orientation": "vertical",
+        "material": "neon-open-halo",
+        "collider": false
+      },
+      {
+        "id": "neon-loading",
+        "type": "emissiveQuad",
+        "position": [
+          -8.85,
+          4.4,
+          -20
+        ],
+        "size": [
+          4.4,
+          1.3
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "neon-loading-sign",
+        "collider": false
+      },
+      {
+        "id": "neon-loading-streak",
+        "type": "emissiveQuad",
+        "position": [
+          -3.3499999999999996,
+          0.02,
+          -20
+        ],
+        "size": [
+          6.6000000000000005,
+          13
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "horizontal",
+        "material": "neon-loading-streak",
+        "collider": false
+      },
+      {
+        "id": "neon-loading-halo",
+        "type": "emissiveQuad",
+        "position": [
+          -8.19,
+          4.4,
+          -20
+        ],
+        "size": [
+          7.920000000000001,
+          3.3800000000000003
+        ],
+        "orientation": "vertical",
+        "material": "neon-loading-halo",
+        "collider": false
+      },
+      {
+        "id": "neon-crossst",
+        "type": "emissiveQuad",
+        "position": [
+          -2,
+          7,
+          -33.9
+        ],
+        "size": [
+          7,
+          1.8
+        ],
+        "yaw": 0,
+        "orientation": "vertical",
+        "material": "neon-crossst-sign",
+        "collider": false
+      },
+      {
+        "id": "neon-crossst-streak",
+        "type": "emissiveQuad",
+        "position": [
+          -2,
+          0.02,
+          -33.9
+        ],
+        "size": [
+          10.5,
+          13
+        ],
+        "yaw": 0,
+        "orientation": "horizontal",
+        "material": "neon-crossst-streak",
+        "collider": false
+      },
+      {
+        "id": "neon-crossst-halo",
+        "type": "emissiveQuad",
+        "position": [
+          -2,
+          7,
+          -32.8
+        ],
+        "size": [
+          12.6,
+          4.680000000000001
+        ],
+        "orientation": "vertical",
+        "material": "neon-crossst-halo",
+        "collider": false
+      },
+      {
+        "id": "lamp-0-pole",
+        "type": "box",
+        "position": [
+          -7.2,
+          3.2,
+          -26
+        ],
+        "size": [
+          0.7,
+          6.4,
+          0.7
+        ],
+        "material": "lamp-pole",
+        "collider": true
+      },
+      {
+        "id": "lamp-0-arm",
+        "type": "box",
+        "position": [
+          -6.4,
+          6.3,
+          -26
+        ],
+        "size": [
+          1.6,
+          0.12,
+          0.12
+        ],
+        "material": "lamp-pole",
+        "collider": false
+      },
+      {
+        "id": "lamp-0-head",
+        "type": "box",
+        "position": [
+          -5.7,
+          6.2,
+          -26
+        ],
+        "size": [
+          0.9,
+          0.18,
+          0.5
+        ],
+        "material": "lamp-pole",
+        "collider": false
+      },
+      {
+        "id": "lamp-0-lens",
+        "type": "emissiveQuad",
+        "position": [
+          -5.7,
+          6.08,
+          -26
+        ],
+        "size": [
+          0.8,
+          0.42
+        ],
+        "orientation": "horizontal",
+        "material": "lamp-lens",
+        "collider": false
+      },
+      {
+        "id": "lamp-0-shaft",
+        "type": "emissiveQuad",
+        "position": [
+          -5.7,
+          3.6,
+          -26
+        ],
+        "size": [
+          2.4,
+          4.2
+        ],
+        "orientation": "vertical",
+        "material": "lamp-0-shaft",
+        "collider": false
+      },
+      {
+        "id": "lamp-0-pool",
+        "type": "emissiveQuad",
+        "position": [
+          -5.7,
+          0.02,
+          -26
+        ],
+        "size": [
+          5,
+          8.5
+        ],
+        "orientation": "horizontal",
+        "material": "lamp-0-pool",
+        "collider": false
+      },
+      {
+        "id": "lamp-1-pole",
+        "type": "box",
+        "position": [
+          7.2,
+          3.2,
+          -12
+        ],
+        "size": [
+          0.7,
+          6.4,
+          0.7
+        ],
+        "material": "lamp-pole",
+        "collider": true
+      },
+      {
+        "id": "lamp-1-arm",
+        "type": "box",
+        "position": [
+          6.4,
+          6.3,
+          -12
+        ],
+        "size": [
+          1.6,
+          0.12,
+          0.12
+        ],
+        "material": "lamp-pole",
+        "collider": false
+      },
+      {
+        "id": "lamp-1-head",
+        "type": "box",
+        "position": [
+          5.7,
+          6.2,
+          -12
+        ],
+        "size": [
+          0.9,
+          0.18,
+          0.5
+        ],
+        "material": "lamp-pole",
+        "collider": false
+      },
+      {
+        "id": "lamp-1-lens",
+        "type": "emissiveQuad",
+        "position": [
+          5.7,
+          6.08,
+          -12
+        ],
+        "size": [
+          0.8,
+          0.42
+        ],
+        "orientation": "horizontal",
+        "material": "lamp-lens",
+        "collider": false
+      },
+      {
+        "id": "lamp-1-shaft",
+        "type": "emissiveQuad",
+        "position": [
+          5.7,
+          3.6,
+          -12
+        ],
+        "size": [
+          2.4,
+          4.2
+        ],
+        "orientation": "vertical",
+        "material": "lamp-1-shaft",
+        "collider": false
+      },
+      {
+        "id": "lamp-1-pool",
+        "type": "emissiveQuad",
+        "position": [
+          5.7,
+          0.02,
+          -12
+        ],
+        "size": [
+          5,
+          8.5
+        ],
+        "orientation": "horizontal",
+        "material": "lamp-1-pool",
+        "collider": false
+      },
+      {
+        "id": "lamp-2-pole",
+        "type": "box",
+        "position": [
+          -7.2,
+          3.2,
+          4
+        ],
+        "size": [
+          0.7,
+          6.4,
+          0.7
+        ],
+        "material": "lamp-pole",
+        "collider": true
+      },
+      {
+        "id": "lamp-2-arm",
+        "type": "box",
+        "position": [
+          -6.4,
+          6.3,
+          4
+        ],
+        "size": [
+          1.6,
+          0.12,
+          0.12
+        ],
+        "material": "lamp-pole",
+        "collider": false
+      },
+      {
+        "id": "lamp-2-head",
+        "type": "box",
+        "position": [
+          -5.7,
+          6.2,
+          4
+        ],
+        "size": [
+          0.9,
+          0.18,
+          0.5
+        ],
+        "material": "lamp-pole",
+        "collider": false
+      },
+      {
+        "id": "lamp-2-lens",
+        "type": "emissiveQuad",
+        "position": [
+          -5.7,
+          6.08,
+          4
+        ],
+        "size": [
+          0.8,
+          0.42
+        ],
+        "orientation": "horizontal",
+        "material": "lamp-lens",
+        "collider": false
+      },
+      {
+        "id": "lamp-2-shaft",
+        "type": "emissiveQuad",
+        "position": [
+          -5.7,
+          3.6,
+          4
+        ],
+        "size": [
+          2.4,
+          4.2
+        ],
+        "orientation": "vertical",
+        "material": "lamp-2-shaft",
+        "collider": false
+      },
+      {
+        "id": "lamp-2-pool",
+        "type": "emissiveQuad",
+        "position": [
+          -5.7,
+          0.02,
+          4
+        ],
+        "size": [
+          5,
+          8.5
+        ],
+        "orientation": "horizontal",
+        "material": "lamp-2-pool",
+        "collider": false
+      },
+      {
+        "id": "lamp-3-pole",
+        "type": "box",
+        "position": [
+          7.2,
+          3.2,
+          20
+        ],
+        "size": [
+          0.7,
+          6.4,
+          0.7
+        ],
+        "material": "lamp-pole",
+        "collider": true
+      },
+      {
+        "id": "lamp-3-arm",
+        "type": "box",
+        "position": [
+          6.4,
+          6.3,
+          20
+        ],
+        "size": [
+          1.6,
+          0.12,
+          0.12
+        ],
+        "material": "lamp-pole",
+        "collider": false
+      },
+      {
+        "id": "lamp-3-head",
+        "type": "box",
+        "position": [
+          5.7,
+          6.2,
+          20
+        ],
+        "size": [
+          0.9,
+          0.18,
+          0.5
+        ],
+        "material": "lamp-pole",
+        "collider": false
+      },
+      {
+        "id": "lamp-3-lens",
+        "type": "emissiveQuad",
+        "position": [
+          5.7,
+          6.08,
+          20
+        ],
+        "size": [
+          0.8,
+          0.42
+        ],
+        "orientation": "horizontal",
+        "material": "lamp-lens",
+        "collider": false
+      },
+      {
+        "id": "lamp-3-shaft",
+        "type": "emissiveQuad",
+        "position": [
+          5.7,
+          3.6,
+          20
+        ],
+        "size": [
+          2.4,
+          4.2
+        ],
+        "orientation": "vertical",
+        "material": "lamp-3-shaft",
+        "collider": false
+      },
+      {
+        "id": "lamp-3-pool",
+        "type": "emissiveQuad",
+        "position": [
+          5.7,
+          0.02,
+          20
+        ],
+        "size": [
+          5,
+          8.5
+        ],
+        "orientation": "horizontal",
+        "material": "lamp-3-pool",
+        "collider": false
+      },
+      {
+        "id": "dumpster",
+        "type": "box",
+        "position": [
+          -14.5,
+          0.75,
+          1.9
+        ],
+        "size": [
+          2.4,
+          1.5,
+          1.5
+        ],
+        "material": "dumpster",
+        "collider": true
+      },
+      {
+        "id": "crate-0",
+        "type": "box",
+        "position": [
+          -17.5,
+          0.45,
+          -2
+        ],
+        "size": [
+          0.9,
+          0.9,
+          0.9
+        ],
+        "material": "crate",
+        "collider": true
+      },
+      {
+        "id": "crate-1",
+        "type": "box",
+        "position": [
+          -18.6,
+          0.45,
+          -1.9
+        ],
+        "size": [
+          0.9,
+          0.9,
+          0.9
+        ],
+        "material": "crate",
+        "collider": true
+      },
+      {
+        "id": "fire-escape-deck-0",
+        "type": "box",
+        "position": [
+          -13.5,
+          4,
+          -2.94
+        ],
+        "size": [
+          3.6,
+          0.1,
+          0.12
+        ],
+        "yaw": 1.5707963267948966,
+        "material": "fire-escape",
+        "collider": false
+      },
+      {
+        "id": "fire-escape-rail-0",
+        "type": "box",
+        "position": [
+          -13.5,
+          4.9,
+          -2.7
+        ],
+        "size": [
+          3.6,
+          0.06,
+          0.06
+        ],
+        "yaw": 1.5707963267948966,
+        "material": "fire-escape",
+        "collider": false
+      },
+      {
+        "id": "fire-escape-deck-1",
+        "type": "box",
+        "position": [
+          -13.5,
+          7,
+          -2.94
+        ],
+        "size": [
+          3.6,
+          0.1,
+          0.12
+        ],
+        "yaw": 1.5707963267948966,
+        "material": "fire-escape",
+        "collider": false
+      },
+      {
+        "id": "fire-escape-rail-1",
+        "type": "box",
+        "position": [
+          -13.5,
+          7.9,
+          -2.7
+        ],
+        "size": [
+          3.6,
+          0.06,
+          0.06
+        ],
+        "yaw": 1.5707963267948966,
+        "material": "fire-escape",
+        "collider": false
+      },
+      {
+        "id": "fire-escape-deck-2",
+        "type": "box",
+        "position": [
+          -13.5,
+          10,
+          -2.94
+        ],
+        "size": [
+          3.6,
+          0.1,
+          0.12
+        ],
+        "yaw": 1.5707963267948966,
+        "material": "fire-escape",
+        "collider": false
+      },
+      {
+        "id": "fire-escape-rail-2",
+        "type": "box",
+        "position": [
+          -13.5,
+          10.9,
+          -2.7
+        ],
+        "size": [
+          3.6,
+          0.06,
+          0.06
+        ],
+        "yaw": 1.5707963267948966,
+        "material": "fire-escape",
+        "collider": false
+      },
+      {
+        "id": "fire-escape-deck-3",
+        "type": "box",
+        "position": [
+          -13.5,
+          13,
+          -2.94
+        ],
+        "size": [
+          3.6,
+          0.1,
+          0.12
+        ],
+        "yaw": 1.5707963267948966,
+        "material": "fire-escape",
+        "collider": false
+      },
+      {
+        "id": "fire-escape-rail-3",
+        "type": "box",
+        "position": [
+          -13.5,
+          13.9,
+          -2.7
+        ],
+        "size": [
+          3.6,
+          0.06,
+          0.06
+        ],
+        "yaw": 1.5707963267948966,
+        "material": "fire-escape",
+        "collider": false
+      },
+      {
+        "id": "alley-lamp-0-hood",
+        "type": "box",
+        "position": [
+          -12.5,
+          3.5,
+          -2.63
+        ],
+        "size": [
+          0.7,
+          0.14,
+          0.42
+        ],
+        "material": "alley-lamp-hood",
+        "collider": false
+      },
+      {
+        "id": "alley-lamp-0-lens",
+        "type": "emissiveQuad",
+        "position": [
+          -12.5,
+          3.4,
+          -2.63
+        ],
+        "size": [
+          0.6,
+          0.24
+        ],
+        "orientation": "horizontal",
+        "material": "alley-lamp-lens",
+        "collider": false
+      },
+      {
+        "id": "alley-lamp-0-halo",
+        "type": "emissiveQuad",
+        "position": [
+          -12.5,
+          3.35,
+          -2.3
+        ],
+        "size": [
+          2,
+          2
+        ],
+        "orientation": "vertical",
+        "material": "alley-lamp-0-halo",
+        "collider": false
+      },
+      {
+        "id": "alley-lamp-0-pool",
+        "type": "emissiveQuad",
+        "position": [
+          -12.5,
+          0.02,
+          -1.9500000000000002
+        ],
+        "size": [
+          4.5,
+          4.5
+        ],
+        "orientation": "horizontal",
+        "material": "alley-lamp-0-pool",
+        "collider": false
+      },
+      {
+        "id": "alley-lamp-1-hood",
+        "type": "box",
+        "position": [
+          -18.5,
+          3.5,
+          2.63
+        ],
+        "size": [
+          0.7,
+          0.14,
+          0.42
+        ],
+        "material": "alley-lamp-hood",
+        "collider": false
+      },
+      {
+        "id": "alley-lamp-1-lens",
+        "type": "emissiveQuad",
+        "position": [
+          -18.5,
+          3.4,
+          2.63
+        ],
+        "size": [
+          0.6,
+          0.24
+        ],
+        "orientation": "horizontal",
+        "material": "alley-lamp-lens",
+        "collider": false
+      },
+      {
+        "id": "alley-lamp-1-halo",
+        "type": "emissiveQuad",
+        "position": [
+          -18.5,
+          3.35,
+          2.3
+        ],
+        "size": [
+          2,
+          2
+        ],
+        "orientation": "vertical",
+        "material": "alley-lamp-1-halo",
+        "collider": false
+      },
+      {
+        "id": "alley-lamp-1-pool",
+        "type": "emissiveQuad",
+        "position": [
+          -18.5,
+          0.02,
+          1.9500000000000002
+        ],
+        "size": [
+          4.5,
+          4.5
+        ],
+        "orientation": "horizontal",
+        "material": "alley-lamp-1-pool",
+        "collider": false
+      },
+      {
+        "id": "awning",
+        "type": "box",
+        "position": [
+          -10.2,
+          3.4,
+          0
+        ],
+        "size": [
+          2.6,
+          0.16,
+          7
+        ],
+        "material": "awning",
+        "collider": false
+      },
+      {
+        "id": "shop-a-glass",
+        "type": "emissiveQuad",
+        "position": [
+          8.9,
+          1.6,
+          -4
+        ],
+        "size": [
+          5,
+          2.4
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "shop-a-glass",
+        "collider": false
+      },
+      {
+        "id": "shop-a-wash",
+        "type": "emissiveQuad",
+        "position": [
+          6.6,
+          0.02,
+          -4
+        ],
+        "size": [
+          6,
+          6.25
+        ],
+        "orientation": "horizontal",
+        "material": "shop-a-wash",
+        "collider": false
+      },
+      {
+        "id": "shop-b-glass",
+        "type": "emissiveQuad",
+        "position": [
+          8.9,
+          1.6,
+          14
+        ],
+        "size": [
+          4,
+          2.4
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "shop-b-glass",
+        "collider": false
+      },
+      {
+        "id": "shop-b-wash",
+        "type": "emissiveQuad",
+        "position": [
+          6.6,
+          0.02,
+          14
+        ],
+        "size": [
+          6,
+          5
+        ],
+        "orientation": "horizontal",
+        "material": "shop-b-wash",
+        "collider": false
+      },
+      {
+        "id": "shop-c-glass",
+        "type": "emissiveQuad",
+        "position": [
+          8.9,
+          1.6,
+          -24
+        ],
+        "size": [
+          4.5,
+          2.4
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "shop-c-glass",
+        "collider": false
+      },
+      {
+        "id": "shop-c-wash",
+        "type": "emissiveQuad",
+        "position": [
+          6.6,
+          0.02,
+          -24
+        ],
+        "size": [
+          6,
+          5.625
+        ],
+        "orientation": "horizontal",
+        "material": "shop-c-wash",
+        "collider": false
+      },
+      {
+        "id": "shop-d-glass",
+        "type": "emissiveQuad",
+        "position": [
+          -8.9,
+          1.6,
+          26
+        ],
+        "size": [
+          4.5,
+          2.4
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "shop-d-glass",
+        "collider": false
+      },
+      {
+        "id": "shop-d-wash",
+        "type": "emissiveQuad",
+        "position": [
+          -6.6,
+          0.02,
+          26
+        ],
+        "size": [
+          6,
+          5.625
+        ],
+        "orientation": "horizontal",
+        "material": "shop-d-wash",
+        "collider": false
+      },
+      {
+        "id": "puddle-0",
+        "type": "plane",
+        "position": [
+          -2.5,
+          0.012,
+          8
+        ],
+        "size": [
+          6,
+          4.5
+        ],
+        "orientation": "horizontal",
+        "material": "puddle",
+        "collider": false
+      },
+      {
+        "id": "puddle-1",
+        "type": "plane",
+        "position": [
+          3.5,
+          0.012,
+          -6
+        ],
+        "size": [
+          5,
+          7
+        ],
+        "orientation": "horizontal",
+        "material": "puddle",
+        "collider": false
+      },
+      {
+        "id": "puddle-2",
+        "type": "plane",
+        "position": [
+          -4.5,
+          0.012,
+          -18
+        ],
+        "size": [
+          7,
+          5
+        ],
+        "orientation": "horizontal",
+        "material": "puddle",
+        "collider": false
+      },
+      {
+        "id": "puddle-3",
+        "type": "plane",
+        "position": [
+          5.5,
+          0.012,
+          22
+        ],
+        "size": [
+          4.5,
+          6
+        ],
+        "orientation": "horizontal",
+        "material": "puddle",
+        "collider": false
+      },
+      {
+        "id": "puddle-4",
+        "type": "plane",
+        "position": [
+          -15.5,
+          0.012,
+          -0.5
+        ],
+        "size": [
+          5,
+          3.5
+        ],
+        "orientation": "horizontal",
+        "material": "puddle",
+        "collider": false
+      }
+    ],
+    "lights": [
+      {
+        "id": "door-light",
+        "type": "point",
+        "colorFrom": "accent",
+        "position": [
+          -21.2,
+          2.9,
+          0
+        ],
+        "intensity": 95,
+        "distance": 15,
+        "decay": 2,
+        "flicker": {
+          "speed": 1.7,
+          "depth": 0.14
+        },
+        "linkedElementId": "door-bulb"
+      },
+      {
+        "id": "neon-hotel-light",
+        "type": "point",
+        "colorFrom": "primary",
+        "position": [
+          7.6499999999999995,
+          5.4,
+          -14
+        ],
+        "intensity": 430,
+        "distance": 22,
+        "decay": 2,
+        "flicker": {
+          "speed": 2.3,
+          "depth": 0.22
+        },
+        "linkedElementId": "neon-hotel"
+      },
+      {
+        "id": "neon-bar-light",
+        "type": "point",
+        "colorFrom": "accent",
+        "position": [
+          -7.6499999999999995,
+          3.9,
+          12
+        ],
+        "intensity": 400,
+        "distance": 20,
+        "decay": 2
+      },
+      {
+        "id": "neon-open-light",
+        "type": "point",
+        "colorFrom": "primary",
+        "position": [
+          7.85,
+          8.5,
+          6
+        ],
+        "intensity": 380,
+        "distance": 21,
+        "decay": 2
+      },
+      {
+        "id": "neon-loading-light",
+        "type": "point",
+        "colorFrom": "primary",
+        "position": [
+          -7.6499999999999995,
+          4.4,
+          -20
+        ],
+        "intensity": 300,
+        "distance": 18,
+        "decay": 2,
+        "flicker": {
+          "speed": 5.1,
+          "depth": 0.22
+        },
+        "linkedElementId": "neon-loading"
+      },
+      {
+        "id": "neon-crossst-light",
+        "type": "point",
+        "colorFrom": "accent",
+        "position": [
+          -2,
+          7,
+          -31.9
+        ],
+        "intensity": 560,
+        "distance": 26,
+        "decay": 2
+      },
+      {
+        "id": "lamp-0-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "position": [
+          -5.7,
+          6,
+          -26
+        ],
+        "intensity": 760,
+        "distance": 24,
+        "decay": 2
+      },
+      {
+        "id": "lamp-1-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "position": [
+          5.7,
+          6,
+          -12
+        ],
+        "intensity": 760,
+        "distance": 24,
+        "decay": 2
+      },
+      {
+        "id": "lamp-2-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "position": [
+          -5.7,
+          6,
+          4
+        ],
+        "intensity": 760,
+        "distance": 24,
+        "decay": 2
+      },
+      {
+        "id": "lamp-3-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "tintMix": 0.78,
+        "tintToward": "#f2fbff",
+        "position": [
+          5.7,
+          6,
+          20
+        ],
+        "intensity": 760,
+        "distance": 24,
+        "decay": 2
+      },
+      {
+        "id": "alley-lamp-0-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "position": [
+          -12.5,
+          3.35,
+          -2.35
+        ],
+        "intensity": 150,
+        "distance": 13,
+        "decay": 2
+      },
+      {
+        "id": "alley-lamp-1-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "position": [
+          -18.5,
+          3.35,
+          2.35
+        ],
+        "intensity": 150,
+        "distance": 13,
+        "decay": 2
+      },
+      {
+        "id": "awning-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "position": [
+          -10,
+          3.1,
+          0
+        ],
+        "intensity": 140,
+        "distance": 13,
+        "decay": 2
+      },
+      {
+        "id": "shop-a-spill",
+        "type": "point",
+        "colorFrom": "primary",
+        "position": [
+          7.4,
+          1.9,
+          -4
+        ],
+        "intensity": 150,
+        "distance": 14,
+        "decay": 2
+      },
+      {
+        "id": "shop-b-spill",
+        "type": "point",
+        "colorFrom": "accent",
+        "position": [
+          7.4,
+          1.9,
+          14
+        ],
+        "intensity": 150,
+        "distance": 14,
+        "decay": 2
+      },
+      {
+        "id": "shop-c-spill",
+        "type": "point",
+        "colorFrom": "primary",
+        "position": [
+          7.4,
+          1.9,
+          -24
+        ],
+        "intensity": 150,
+        "distance": 14,
+        "decay": 2
+      },
+      {
+        "id": "shop-d-spill",
+        "type": "point",
+        "colorFrom": "accent",
+        "position": [
+          -7.4,
+          1.9,
+          26
+        ],
+        "intensity": 150,
+        "distance": 14,
+        "decay": 2
+      },
+      {
+        "id": "hemi",
+        "type": "hemisphere",
+        "skyColor": "#1b303a",
+        "groundColor": "#06090b",
+        "intensity": 0.85
+      },
+      {
+        "id": "moon",
+        "type": "directional",
+        "color": "#93b4cc",
+        "intensity": 0.6,
+        "position": [
+          -14,
+          26,
+          -20
+        ]
+      },
+      {
+        "id": "fill",
+        "type": "ambient",
+        "color": "#0e1b22",
+        "intensity": 0.45
+      },
+      {
+        "id": "back-wash",
+        "type": "point",
+        "color": "#6fa8bd",
+        "position": [
+          0,
+          11,
+          -26
+        ],
+        "intensity": 900,
+        "distance": 46,
+        "decay": 2
+      }
+    ]
+  }
+}

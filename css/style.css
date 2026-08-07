@@ -1,0 +1,158 @@
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #05060a;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+  color: #f5f3ec;
+}
+
+#bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+body.grabbing #bg {
+  cursor: grabbing;
+}
+#bg {
+  cursor: grab;
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(5,6,10,0.65) 100%);
+}
+
+.skip {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  background: #f5f3ec;
+  color: #05060a;
+  padding: 0.5em 1em;
+  z-index: 100;
+}
+.skip:focus {
+  left: 1em;
+  top: 1em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+#hotspots {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hotspot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.4em 0.8em;
+  border-radius: 999px;
+  background: rgba(5,6,10,0.55);
+  border: 1px solid rgba(245,243,236,0.5);
+  color: #f5f3ec;
+  text-decoration: none;
+  font-size: 0.9rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.hotspot:focus,
+.hotspot:hover {
+  border-color: #f5f3ec;
+  outline: none;
+}
+
+.hotspot .pin {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: #ffd696;
+  box-shadow: 0 0 8px 2px rgba(255,214,150,0.6);
+  flex: none;
+}
+
+.circle-hint {
+  position: fixed;
+  bottom: 1.5em;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.85rem;
+  opacity: 0.7;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5,6,10,0.85);
+}
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-panel {
+  max-width: 32em;
+  padding: 2em;
+  background: #0c0e14;
+  border: 1px solid rgba(245,243,236,0.25);
+  border-radius: 0.5em;
+}
+
+#prose-close {
+  margin-top: 1em;
+  background: #f5f3ec;
+  color: #05060a;
+  border: none;
+  border-radius: 999px;
+  padding: 0.5em 1.2em;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+#cutscene-overlay {
+  background: #000;
+}
+
+#cutscene-video {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hotspot {
+    transition: none;
+  }
+}

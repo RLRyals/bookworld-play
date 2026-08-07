@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BookWorld — gray-box walkable slice</title>
+<link rel="stylesheet" href="css/walk.css" />
+</head>
+<body>
+  <a class="skip" href="#walk-help">Skip to controls</a>
+  <canvas id="bg" tabindex="0" aria-label="Walkable 3D street. Use the keyboard controls listed below this canvas."></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <p id="scene-description" class="sr-only"></p>
+  <ul id="zone-list" class="sr-only" aria-label="Places in this world that do something"></ul>
+
+  <div id="walk-help" class="help" tabindex="-1">
+    <p class="help-title">Controls</p>
+    <ul>
+      <li><b>W A S D</b> walk &middot; <b>mouse</b> look (click the view to capture the pointer)</li>
+      <li><b>Arrow keys</b> walk and turn &middot; <b>R</b>/<b>F</b> look up/down &middot; <b>Home</b> level the view</li>
+      <li><b>E</b> interact &middot; <b>Shift</b> slow &middot; <b>Esc</b> release pointer / close</li>
+      <li><b>H</b> hide or show this panel</li>
+    </ul>
+  </div>
+
+  <div id="crosshair" aria-hidden="true"></div>
+
+  <div id="prompt" class="prompt hidden" aria-hidden="true"></div>
+  <p id="walk-status" class="sr-only" role="status" aria-live="polite"></p>
+
+  <div id="fps-readout" class="fps hidden" aria-hidden="true"></div>
+
+  <div id="prose-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prose-title">
+    <div class="overlay-panel">
+      <p id="prose-title" class="sr-only">Passage</p>
+      <p id="prose-text"></p>
+      <button id="prose-close" type="button">Close</button>
+    </div>
+  </div>
+
+  <div id="cutscene-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Cutscene">
+    <video id="cutscene-video" playsinline></video>
+    <button id="cutscene-close" type="button" class="corner-close">Close cutscene</button>
+  </div>
+
+  <div id="load-error" class="overlay hidden" role="alert">
+    <div class="overlay-panel">
+      <p id="load-error-text"></p>
+    </div>
+  </div>
+
+  <script type="importmap">
+  { "imports": { "three": "./js/three.module.js" } }
+  </script>
+  <script type="module" src="js/walk.js"></script>
+</body>
+</html>

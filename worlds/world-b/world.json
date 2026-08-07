@@ -1,0 +1,136 @@
+{
+  "id": "world-b-plaza",
+  "title": "World B — Gray-box Plaza (differently shaped, placeholder)",
+  "description": "A small stone plaza at dusk, gray-box placeholder geometry. Not a reskin of the street: a colonnade lines both long sides, a dry fountain plinth sits at the centre, and an archway on the north wall opens onto a small dark interior chamber with a lit brazier. Placeholder geometry only — no story canon. Authored entirely from the same geometry vocabulary as world-a (box / plane / emissiveQuad) with zero engine code changes.",
+  "worldTexture": [
+    "placeholder location — not tied to any story canon",
+    "dusk, warm torchlight instead of neon, low clear haze",
+    "an open plaza with a colonnade, not a street corridor",
+    "no vehicles, no people — the plaza is empty"
+  ],
+  "spawn": {
+    "position": [0, 0, 9],
+    "yaw": 0.02,
+    "pitch": -0.02
+  },
+  "player": {
+    "eyeHeight": 1.65,
+    "walkSpeed": 2.8,
+    "radius": 0.45
+  },
+  "palette": {
+    "primary": "#e8c469",
+    "accent": "#5fb0ff",
+    "fogColor": "#1a1712",
+    "fogDensity": 0.012
+  },
+  "bounds": { "minX": -14.5, "maxX": 14.5, "minZ": -19.8, "maxZ": 9.4 },
+  "triggers": [
+    {
+      "id": "plaza-entry",
+      "label": "The Plaza",
+      "mode": "auto",
+      "once": true,
+      "shape": "radius",
+      "position": [0, 0, 6],
+      "radius": 3.0,
+      "srHint": "A stone plaza opens ahead, colonnades on both sides.",
+      "trigger": { "type": "cutscene", "cutsceneId": "plaza-arrival" }
+    },
+    {
+      "id": "fountain",
+      "label": "The Fountain",
+      "mode": "prompted",
+      "once": false,
+      "shape": "radius",
+      "anchor": "fountain-base",
+      "offset": [0, -0.4, 0],
+      "radius": 2.6,
+      "prompt": "Press E to look at the fountain",
+      "srHint": "A dry stone fountain plinth at the centre of the plaza.",
+      "trigger": {
+        "type": "prose",
+        "text": "No water has run here in a long time. The basin is dry, dusted pale, and something — moss, maybe, or just shadow — has taken the low side of the rim."
+      }
+    },
+    {
+      "id": "brazier-chamber",
+      "label": "The Brazier Chamber",
+      "mode": "prompted",
+      "once": false,
+      "shape": "radius",
+      "anchor": "brazier",
+      "offset": [0, -0.9, 0],
+      "radius": 2.2,
+      "prompt": "Press E to approach the brazier",
+      "srHint": "Through the archway: a small dark room with a single lit brazier.",
+      "trigger": { "type": "cutscene", "cutsceneId": "brazier-light" }
+    }
+  ],
+  "cutscenes": [
+    { "id": "plaza-arrival", "title": "Arrival", "video": "../../scenes/manifest-a/cutscene.mp4", "poster": null },
+    { "id": "brazier-light", "title": "The Brazier", "video": "../../scenes/manifest-b/cutscene.mp4", "poster": null }
+  ],
+  "geometry": {
+    "seed": 20260807,
+    "envCapture": { "position": [0, 2, -6] },
+    "materials": {
+      "stone": { "kind": "flat", "color": "#3a3630", "roughness": 0.9, "metalness": 0.05 },
+      "interiorFloor": { "kind": "flat", "color": "#141210", "roughness": 0.95, "metalness": 0.02 },
+      "wall": { "kind": "flat", "color": "#2c2a26", "roughness": 0.95, "metalness": 0.02 },
+      "interiorWall": { "kind": "flat", "color": "#1a1714", "roughness": 0.96, "metalness": 0.02 },
+      "pillar": { "kind": "flat", "color": "#514a3e", "roughness": 0.8, "metalness": 0.1 },
+      "southWall": { "kind": "flat", "color": "#332f28", "roughness": 0.9, "metalness": 0.03 },
+      "brazierBody": { "kind": "flat", "color": "#20140c", "roughness": 0.6, "metalness": 0.4 },
+      "brazierGlow": { "kind": "glow", "colorFrom": "accent", "opacity": 0.55 },
+      "fountainBase": { "kind": "flat", "color": "#46433a", "roughness": 0.85, "metalness": 0.05 },
+      "fountainGlow": { "kind": "glow", "colorFrom": "primary", "opacity": 0.3 },
+      "plazaLampPole": { "kind": "flat", "color": "#26221c", "roughness": 0.65, "metalness": 0.6 },
+      "lampLens": { "kind": "tint", "tintFrom": "primary", "tintMix": 0.6 }
+    },
+    "elements": [
+      { "id": "plaza-floor", "type": "plane", "position": [0, 0, -2], "size": [28, 24], "orientation": "horizontal", "material": "stone", "ground": true },
+      { "id": "interior-floor", "type": "plane", "position": [0, 0, -17], "size": [6, 4], "orientation": "horizontal", "material": "interiorFloor", "ground": true },
+
+      { "id": "wall-north-left", "type": "box", "position": [-7, 3, -12.2], "size": [10, 6, 0.6], "material": "wall" },
+      { "id": "wall-north-right", "type": "box", "position": [7, 3, -12.2], "size": [10, 6, 0.6], "material": "wall" },
+      { "id": "interior-wall-back", "type": "box", "position": [0, 3, -19.3], "size": [8, 6, 0.6], "material": "interiorWall" },
+      { "id": "interior-wall-left", "type": "box", "position": [-3.3, 3, -17], "size": [0.6, 6, 4], "material": "interiorWall" },
+      { "id": "interior-wall-right", "type": "box", "position": [3.3, 3, -17], "size": [0.6, 6, 4], "material": "interiorWall" },
+      { "id": "south-wall", "type": "box", "position": [0, 1.0, 9.8], "size": [28, 2.0, 0.6], "material": "southWall" },
+
+      { "id": "brazier", "type": "box", "position": [0, 0.9, -17.8], "size": [0.6, 1.8, 0.6], "material": "brazierBody" },
+      { "id": "brazier-glow", "type": "emissiveQuad", "position": [0, 1.85, -17.8], "size": [0.8, 0.8], "orientation": "horizontal", "material": "brazierGlow", "collider": false },
+
+      { "id": "fountain-base", "type": "box", "position": [0, 0.4, -2], "size": [3, 0.8, 3], "material": "fountainBase" },
+      { "id": "fountain-glow", "type": "emissiveQuad", "position": [0, 0.82, -2], "size": [2.4, 2.4], "orientation": "horizontal", "material": "fountainGlow", "collider": false },
+
+      { "id": "pillar-w-0", "type": "box", "position": [-13, 2.5, -8], "size": [1.2, 5, 1.2], "material": "pillar" },
+      { "id": "pillar-w-1", "type": "box", "position": [-13, 2.5, -2], "size": [1.2, 5, 1.2], "material": "pillar" },
+      { "id": "pillar-w-2", "type": "box", "position": [-13, 2.5, 4], "size": [1.2, 5, 1.2], "material": "pillar" },
+      { "id": "pillar-e-0", "type": "box", "position": [13, 2.5, -8], "size": [1.2, 5, 1.2], "material": "pillar" },
+      { "id": "pillar-e-1", "type": "box", "position": [13, 2.5, -2], "size": [1.2, 5, 1.2], "material": "pillar" },
+      { "id": "pillar-e-2", "type": "box", "position": [13, 2.5, 4], "size": [1.2, 5, 1.2], "material": "pillar" },
+
+      { "id": "lamp-nw-pole", "type": "box", "position": [-11, 2.5, -10], "size": [0.5, 5, 0.5], "material": "plazaLampPole" },
+      { "id": "lamp-nw-lens", "type": "emissiveQuad", "position": [-11, 5.05, -10], "size": [0.6, 0.3], "orientation": "horizontal", "material": "lampLens", "collider": false },
+      { "id": "lamp-ne-pole", "type": "box", "position": [11, 2.5, -10], "size": [0.5, 5, 0.5], "material": "plazaLampPole" },
+      { "id": "lamp-ne-lens", "type": "emissiveQuad", "position": [11, 5.05, -10], "size": [0.6, 0.3], "orientation": "horizontal", "material": "lampLens", "collider": false },
+      { "id": "lamp-sw-pole", "type": "box", "position": [-11, 2.5, 7], "size": [0.5, 5, 0.5], "material": "plazaLampPole" },
+      { "id": "lamp-sw-lens", "type": "emissiveQuad", "position": [-11, 5.05, 7], "size": [0.6, 0.3], "orientation": "horizontal", "material": "lampLens", "collider": false },
+      { "id": "lamp-se-pole", "type": "box", "position": [11, 2.5, 7], "size": [0.5, 5, 0.5], "material": "plazaLampPole" },
+      { "id": "lamp-se-lens", "type": "emissiveQuad", "position": [11, 5.05, 7], "size": [0.6, 0.3], "orientation": "horizontal", "material": "lampLens", "collider": false }
+    ],
+    "lights": [
+      { "id": "brazier-light", "type": "point", "colorFrom": "accent", "position": [0, 1.9, -17.8], "intensity": 140, "distance": 10, "decay": 2.0, "flicker": { "speed": 2.0, "depth": 0.3 }, "linkedElementId": "brazier-glow" },
+      { "id": "fountain-light", "type": "point", "colorFrom": "primary", "position": [0, 1.6, -2], "intensity": 220, "distance": 14, "decay": 2.0 },
+      { "id": "lamp-nw-light", "type": "point", "tintFrom": "primary", "position": [-11, 5.2, -10], "intensity": 280, "distance": 14, "decay": 2.0 },
+      { "id": "lamp-ne-light", "type": "point", "tintFrom": "primary", "position": [11, 5.2, -10], "intensity": 280, "distance": 14, "decay": 2.0 },
+      { "id": "lamp-sw-light", "type": "point", "tintFrom": "primary", "position": [-11, 5.2, 7], "intensity": 280, "distance": 14, "decay": 2.0 },
+      { "id": "lamp-se-light", "type": "point", "tintFrom": "primary", "position": [11, 5.2, 7], "intensity": 280, "distance": 14, "decay": 2.0 },
+      { "id": "hemi", "type": "hemisphere", "skyColor": "#3a3020", "groundColor": "#0a0806", "intensity": 0.9 },
+      { "id": "sun", "type": "directional", "color": "#e9caa0", "intensity": 0.55, "position": [10, 22, 14] },
+      { "id": "fill", "type": "ambient", "color": "#241c12", "intensity": 0.4 }
+    ]
+  }
+}

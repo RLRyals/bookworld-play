@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BookWorld — walk a story world</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2.5rem; padding: 2rem;
+    background: radial-gradient(ellipse at 50% 120%, #0c2b22 0%, #060a09 60%, #030404 100%);
+    color: #cfe8dd; font: 16px/1.6 system-ui, sans-serif; text-align: center;
+  }
+  h1 { font-size: 2rem; font-weight: 600; letter-spacing: .12em; color: #7ef0c2; text-shadow: 0 0 24px rgba(126,240,194,.35); }
+  p.tag { max-width: 34rem; color: #9dbfb1; }
+  .worlds { display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: center; }
+  a.world {
+    display: block; width: 15rem; padding: 1.4rem 1.2rem; border: 1px solid #1d4437;
+    border-radius: 10px; background: rgba(12,32,26,.55); color: inherit;
+    text-decoration: none; transition: border-color .2s, transform .2s;
+  }
+  a.world:hover, a.world:focus-visible { border-color: #7ef0c2; transform: translateY(-2px); }
+  a.world strong { display: block; font-size: 1.05rem; color: #e6fff4; margin-bottom: .35rem; }
+  a.world span { font-size: .85rem; color: #93b5a7; }
+  a.world em { display: block; margin-top: .6rem; font-size: .75rem; font-style: normal;
+    letter-spacing: .08em; color: #5f8577; text-transform: uppercase; }
+  footer { font-size: .8rem; color: #567467; max-width: 36rem; }
+  footer a { color: #7ef0c2; }
+</style>
+</head>
+<body>
+  <h1>BOOKWORLD</h1>
+  <p class="tag">One story-agnostic engine; every world below is pure data — a “pack” an author
+  can write without touching a line of engine code. Walk with WASD + mouse, or keyboard alone.
+  Step into the glowing zones.</p>
+  <nav class="worlds" aria-label="Choose a world">
+    <a class="world" href="walk.html">
+      <strong>Noir Street</strong>
+      <span>The vanilla test block — night, fog, neon.</span>
+      <em>vanilla · world-a</em>
+    </a>
+    <a class="world" href="walk.html?world=worlds/world-b/world.json">
+      <strong>Amber Plaza</strong>
+      <span>Same engine, different data: plaza, colonnade, chamber.</span>
+      <em>vanilla · world-b</em>
+    </a>
+  </nav>
+  <footer>Every world is a folder of JSON + images + clips. Author packs coming soon —
+  same engine, different books.</footer>
+</body>
+</html>
