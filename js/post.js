@@ -124,21 +124,39 @@ void main() {
 }
 `;
 
-export function createPost(renderer, scene, camera) {
+// `atmosphere` is the pack's optional style block (js/geometry.js resolveAtmosphere).
+// Every field below keeps the noir-night default it shipped with when the pack states
+// nothing, which is what makes a styleless pack render exactly as before.
+//
+//   "atmosphere": {
+//     "bloom": { "strength": 0.3, "wide": 0.26, "threshold": 0.8, "knee": 0.3 },
+//     "grade": { "exposure": 1.0, "contrast": 1.06, "saturation": 1.1,
+//                "tint": "#3a2412", "lift": 0.08,
+//                "highlightTint": "#ffe6bd", "highlight": 0.3,
+//                "vignette": 0.7, "grain": 0.02 }
+//   }
+export function createPost(renderer, scene, camera, atmosphere) {
+  const bloom = (atmosphere && atmosphere.bloom) || {};
+  const grade = (atmosphere && atmosphere.grade) || {};
+  const pick = (v, d) => (v == null ? d : v);
+  const col = (v, d) => new THREE.Color(v == null ? d : v);
+
   const params = {
-    threshold: 0.88,
-    knee: 0.28,
-    bloom1: 0.46,
-    bloom2: 0.38,
-    exposure: 1.12,
-    contrast: 1.14,
-    saturation: 1.04,
-    shadowTint: new THREE.Color(0x0c3036),
-    shadowLift: 0.115,
-    highlightTint: new THREE.Color(0xdaffef),
-    highlightAmount: 0.35,
-    vignette: 1.10,
-    grain: 0.035,
+    threshold: pick(bloom.threshold, 0.88),
+    knee: pick(bloom.knee, 0.28),
+    // `strength` is the tight halo, `wide` the soft second level; stating only
+    // `strength` scales both, which is what a pack author actually wants to say
+    bloom1: pick(bloom.strength, 0.46),
+    bloom2: pick(bloom.wide, bloom.strength == null ? 0.38 : bloom.strength * 0.83),
+    exposure: pick(grade.exposure, 1.12),
+    contrast: pick(grade.contrast, 1.14),
+    saturation: pick(grade.saturation, 1.04),
+    shadowTint: col(grade.tint, 0x0c3036),
+    shadowLift: pick(grade.lift, 0.115),
+    highlightTint: col(grade.highlightTint, 0xdaffef),
+    highlightAmount: pick(grade.highlight, 0.35),
+    vignette: pick(grade.vignette, 1.10),
+    grain: pick(grade.grain, 0.035),
     enabled: true
   };
 

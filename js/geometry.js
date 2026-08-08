@@ -16,7 +16,20 @@
 // fog/sky grading pipeline, and the one-shot cube-camera reflection capture used by
 // `reflective` materials. A material's `kind` selects one of these engine capabilities;
 // the pack only supplies the parameters (colors, text, litChance, opacity).
+//
+// STYLE-PACK LAYER (slice 5a, specs/2026-08-08-style-pack-layer.md): four OPTIONAL
+// blocks let a pack restyle this same engine into a different-looking world with zero
+// engine edits. All four default to exactly today's behaviour, so a pack that declares
+// none of them (world-a, deliberately) renders byte-identically to before:
+//   * material `texture` + `tileScale` — a procedural generator name or a pack-local
+//     image path, tiled in world units (js/textures.js)
+//   * `atmosphere` — fog / bloom / colour-grade / ambient+key light, read by the post
+//     and lighting rigs instead of the hardcoded noir night rig
+//   * `sky` — gradient or equirect skybox image from the pack folder
+//   * `props` — glTF models placed by the pack, with AABB collision
 import * as THREE from 'three';
+import { GLTFLoader } from './lib/GLTFLoader.js';
+import { resolveTexture, applyWorldUVs } from './textures.js';
 
 // ---------- deterministic RNG so screenshots are reproducible across runs ----------
 function mulberry32(seed) {
@@ -202,7 +215,29 @@ function resolveColor(def, palette) {
   return base;
 }
 
+// A textured material's `color` describes the SURFACE (it becomes the procedural
+// generator's base colour, or is simply the fallback while an image loads); the optional
+// `tint` is the multiplier applied on top. Without `tint` a textured material multiplies
+// by white, so what you see is what the generator drew — otherwise every pack would have
+// to remember to null out `color` and the double-darkening would look like a bug.
+function applyTexture(mat, def, ctx) {
+  if (!def.texture) return mat;
+  if (!('map' in mat)) return mat;
+  const opts = Object.assign(
+    { base: def.color || '#8a8a8a', seed: def.textureSeed == null ? ctx.textureSeed : def.textureSeed },
+    def.textureOptions || {}
+  );
+  mat.map = resolveTexture(def.texture, opts, ctx.base, ctx.warn);
+  if (mat.color) mat.color.set(def.tint || '#ffffff');
+  mat.needsUpdate = true;
+  return mat;
+}
+
 function buildMaterial(def, sizeHint, ctx) {
+  return applyTexture(buildMaterialInner(def, sizeHint, ctx), def, ctx);
+}
+
+function buildMaterialInner(def, sizeHint, ctx) {
   const kind = def.kind || 'flat';
   switch (kind) {
     case 'flat': {
@@ -295,40 +330,113 @@ function buildLight(def, ctx) {
   return light;
 }
 
-// ---------- the pack ----------
-export function buildWorld(scene, world, reduceMotion) {
-  const geo = world.geometry || { materials: {}, elements: [], lights: [] };
-  const palette = {
-    primary: new THREE.Color(world.palette && world.palette.primary || '#2fe6a4'),
-    accent: new THREE.Color(world.palette && world.palette.accent || '#ff2f6d')
+// ---------- atmosphere: the shader-pack analogue ----------
+// Everything here has a default equal to the noir night rig this engine shipped with,
+// so `atmosphere` being absent is not a special case — it just means every value is a
+// default. `resolveAtmosphere` returns the merged block; the post stack (js/post.js)
+// reads `bloom` + `grade`, this module reads `fog` + `ambient` + `key`.
+function resolveAtmosphere(world) {
+  const a = world.atmosphere || {};
+  const pal = world.palette || {};
+  const fogColor = new THREE.Color(pal.fogColor || '#050b0d');
+  // legacy fog derivation: the noir rig lifts the pack's fogColor toward a teal haze so
+  // gray masses silhouette instead of vanishing into black. A pack that states an
+  // atmosphere fog colour means it literally — no lift.
+  const legacyHaze = fogColor.clone().lerp(new THREE.Color(0x1d4a4a), 0.72);
+  const fog = a.fog || {};
+  return {
+    fog: {
+      color: fog.color ? new THREE.Color(fog.color) : legacyHaze,
+      density: fog.density != null ? fog.density : (pal.fogDensity != null ? pal.fogDensity : 0.021)
+    },
+    // horizon colour used by the default gradient sky when the pack states no `sky`
+    baseFogColor: fogColor,
+    ambient: a.ambient || null,
+    key: a.key || null,
+    bloom: a.bloom || null,
+    grade: a.grade || null
   };
-  const fogColor = new THREE.Color(world.palette && world.palette.fogColor || '#050b0d');
-  const fogDensity = world.palette && world.palette.fogDensity != null ? world.palette.fogDensity : 0.021;
-  const rand = mulberry32(geo.seed == null ? 20260806 : geo.seed);
+}
 
-  // Fog is the noir workhorse: it has to be LIGHTER than the buildings, or gray boxes
-  // silhouette against nothing and the frame reads as black voids.
-  const haze = fogColor.clone().lerp(new THREE.Color(0x1d4a4a), 0.72);
-  scene.fog = new THREE.FogExp2(haze.getHex(), fogDensity);
+// perceptual (sRGB byte-space) mix — see the note in buildSky's gradient branch
+function mixSrgb(a, b, t) {
+  const ha = parseInt(a.getHexString(), 16), hb = parseInt(b.getHexString(), 16);
+  const ch = (shift) => Math.round((((ha >> shift) & 255) * (1 - t)) + (((hb >> shift) & 255) * t));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
 
-  // sky: a vertical gradient so rooflines have something to cut against
-  {
-    const c = document.createElement('canvas');
-    c.width = 8; c.height = 256;
-    const g = c.getContext('2d');
-    const grd = g.createLinearGradient(0, 0, 0, 256);
+function buildSky(scene, world, atmo, base, warn) {
+  const sky = world.sky || {};
+  if (sky.type === 'skybox' && sky.src) {
+    const t = new THREE.TextureLoader().load(
+      base + sky.src,
+      (tex) => { tex.mapping = THREE.EquirectangularReflectionMapping; scene.background = tex; },
+      undefined,
+      () => { if (warn) warn(`sky image failed to load: ${base + sky.src}`); }
+    );
+    t.mapping = THREE.EquirectangularReflectionMapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    scene.background = t;
+    return;
+  }
+
+  const c = document.createElement('canvas');
+  c.width = 8; c.height = 256;
+  const g = c.getContext('2d');
+  const grd = g.createLinearGradient(0, 0, 0, 256);
+  if (sky.type === 'gradient') {
+    // pack-stated sky: top -> horizon, plus an optional below-horizon ground band
+    const top = new THREE.Color(sky.top || '#1a2a3a');
+    const horizon = new THREE.Color(sky.horizon || '#c9a06a');
+    const ground = new THREE.Color(sky.ground || '#' + horizon.clone().multiplyScalar(0.45).getHexString());
+    // Two things bite here and both were caught by looking at rendered frames:
+    // (1) eye level is v = 0.5 in an equirect map and a 70-degree vertical FOV only sees
+    //     ~35 degrees above it, so the `top` colour has to be reached FAR below the
+    //     zenith or a "deep blue sky" renders as a flat band of horizon colour;
+    // (2) THREE.Color.lerp mixes in LINEAR space, where a bright horizon colour swamps a
+    //     dark zenith at tiny mix values (12% of a bright orange already reads as red at
+    //     the top of the frame). Sky stops therefore mix in sRGB byte space, which is
+    //     also how the canvas gradient interpolates between them.
+    const h = sky.horizonAt == null ? 0.5 : sky.horizonAt;
+    grd.addColorStop(0.0, '#' + top.getHexString());
+    grd.addColorStop(Math.max(0.01, h - 0.16), mixSrgb(top, horizon, 0.15));
+    grd.addColorStop(Math.max(0.02, h - 0.06), mixSrgb(top, horizon, 0.55));
+    grd.addColorStop(h, '#' + horizon.getHexString());
+    grd.addColorStop(Math.min(0.999, h + 0.02), mixSrgb(horizon, ground, 0.5));
+    grd.addColorStop(1.0, '#' + ground.getHexString());
+  } else {
+    // default (styleless packs): exactly the original noir gradient, derived from fog
+    const fogColor = atmo.baseFogColor;
+    const haze = fogColor.clone().lerp(new THREE.Color(0x1d4a4a), 0.72);
     const zenith = fogColor.clone().multiplyScalar(0.5);
     grd.addColorStop(0.0, '#' + zenith.getHexString());
     grd.addColorStop(0.55, '#' + fogColor.clone().lerp(haze, 0.5).getHexString());
     grd.addColorStop(0.72, '#' + haze.getHexString());
     grd.addColorStop(1.0, '#' + haze.clone().multiplyScalar(0.7).getHexString());
-    g.fillStyle = grd;
-    g.fillRect(0, 0, 8, 256);
-    const t = new THREE.CanvasTexture(c);
-    t.mapping = THREE.EquirectangularReflectionMapping;
-    t.colorSpace = THREE.SRGBColorSpace;
-    scene.background = t;
   }
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 8, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  scene.background = t;
+}
+
+// ---------- the pack ----------
+export function buildWorld(scene, world, reduceMotion, options) {
+  const opts = options || {};
+  const base = opts.base || '';
+  const warn = opts.warn || ((m) => console.warn('[bookworld] ' + m));
+  const geo = world.geometry || { materials: {}, elements: [], lights: [] };
+  const palette = {
+    primary: new THREE.Color(world.palette && world.palette.primary || '#2fe6a4'),
+    accent: new THREE.Color(world.palette && world.palette.accent || '#ff2f6d')
+  };
+  const rand = mulberry32(geo.seed == null ? 20260806 : geo.seed);
+
+  const atmosphere = resolveAtmosphere(world);
+  scene.fog = new THREE.FogExp2(atmosphere.fog.color.getHex(), atmosphere.fog.density);
+  buildSky(scene, world, atmosphere, base, warn);
 
   const colliders = [];
   const glowSprites = [];
@@ -340,7 +448,8 @@ export function buildWorld(scene, world, reduceMotion) {
   const materialCache = new Map();
 
   const ctx = {
-    rand, palette, glowTex: radialGlowTexture(), streakTex: streakTexture(), reflectiveMaterials
+    rand, palette, glowTex: radialGlowTexture(), streakTex: streakTexture(), reflectiveMaterials,
+    base, warn, textureSeed: geo.seed == null ? 20260806 : geo.seed
   };
 
   function getMaterial(matId, sizeHint) {
@@ -363,6 +472,14 @@ export function buildWorld(scene, world, reduceMotion) {
 
   const waterVolumes = [];
 
+  // world-units-per-texture-repeat: stated on the material, overridable per element
+  // (the same plaster at a different scale on a cottage and on a garden wall)
+  function tileScaleOf(el) {
+    if (el.tileScale != null) return el.tileScale;
+    const def = geo.materials[el.material];
+    return def && def.tileScale != null ? def.tileScale : 0;
+  }
+
   for (const el of geo.elements) {
     elementsById[el.id] = el;
     const size = el.size || [1, 1, 1];
@@ -370,7 +487,11 @@ export function buildWorld(scene, world, reduceMotion) {
 
     if (el.type === 'box') {
       const material = getMaterial(el.material, size);
-      mesh = new THREE.Mesh(new THREE.BoxGeometry(size[0], size[1], size[2]), material);
+      const boxGeo = new THREE.BoxGeometry(size[0], size[1], size[2]);
+      // world-unit tiling is a per-MESH concern (a shared material has to tile correctly
+      // on a 1 m crate and a 30 m wall at once), so it rewrites this geometry's UVs
+      applyWorldUVs(boxGeo, size, tileScaleOf(el));
+      mesh = new THREE.Mesh(boxGeo, material);
       mesh.position.set(el.position[0], el.position[1], el.position[2]);
       mesh.rotation.y = el.yaw || 0;
       scene.add(mesh);
@@ -385,7 +506,9 @@ export function buildWorld(scene, world, reduceMotion) {
       }
     } else if (el.type === 'plane' || el.type === 'emissiveQuad') {
       const material = getMaterial(el.material, size);
-      mesh = new THREE.Mesh(new THREE.PlaneGeometry(size[0], size[1]), material);
+      const planeGeo = new THREE.PlaneGeometry(size[0], size[1]);
+      applyWorldUVs(planeGeo, [size[0], size[1], size[0]], tileScaleOf(el));
+      mesh = new THREE.Mesh(planeGeo, material);
       mesh.position.set(el.position[0], el.position[1], el.position[2]);
       if (el.orientation === 'horizontal') {
         mesh.rotation.set(-Math.PI / 2, 0, el.yaw || 0);
@@ -456,6 +579,83 @@ export function buildWorld(scene, world, reduceMotion) {
     }
   }
 
+  // ----- atmosphere's own ambient + key light -----
+  // A pack can keep declaring these in `geometry.lights` (world-a does); stating them in
+  // `atmosphere` instead puts the whole "what time of day is this" decision in one block.
+  if (atmosphere.ambient) {
+    const a = atmosphere.ambient;
+    scene.add(new THREE.AmbientLight(new THREE.Color(a.color || '#ffffff').getHex(), a.intensity == null ? 0.4 : a.intensity));
+  }
+  if (atmosphere.key) {
+    const k = atmosphere.key;
+    const light = new THREE.DirectionalLight(new THREE.Color(k.color || '#ffffff').getHex(), k.intensity == null ? 1 : k.intensity);
+    const dir = k.direction || [10, 20, 10];
+    light.position.set(dir[0], dir[1], dir[2]);
+    scene.add(light);
+    if (k.skyColor || k.groundColor) {
+      scene.add(new THREE.HemisphereLight(
+        new THREE.Color(k.skyColor || '#ffffff').getHex(),
+        new THREE.Color(k.groundColor || '#000000').getHex(),
+        k.hemisphereIntensity == null ? 0.8 : k.hemisphereIntensity
+      ));
+    }
+  }
+
+  // ----- props: glTF models placed by the pack -----
+  // Loading is async and deliberately non-blocking: the world is walkable before the
+  // models land, each prop appends its own AABB to the live `colliders` array when it
+  // arrives, and a prop that fails to load is a console warning, not a dead world.
+  const props = [];
+  const propDefs = world.props || [];
+  let propsPending = propDefs.length;
+  const propsReady = new Promise((resolve) => {
+    if (!propDefs.length) { resolve([]); return; }
+    const loader = new GLTFLoader();
+    for (const def of propDefs) {
+      loader.load(
+        base + def.src,
+        (gltf) => {
+          const root = gltf.scene;
+          const scale = def.scale == null ? 1 : def.scale;
+          root.scale.setScalar(scale);
+          root.rotation.y = def.yaw || 0;
+          root.updateMatrixWorld(true);
+
+          // "stands correctly": by default the model's own bounding box is dropped so its
+          // FEET sit on position[1], because an exported model's origin is wherever the
+          // artist left it (this slice's test asset is origin-centred, so a naive placement
+          // buries half the model in the ground). `align: "origin"` opts out.
+          const box = new THREE.Box3().setFromObject(root);
+          const pos = def.position || [0, 0, 0];
+          const yOffset = def.align === 'origin' ? 0 : -box.min.y;
+          root.position.set(pos[0], pos[1] + yOffset, pos[2]);
+          root.updateMatrixWorld(true);
+
+          const world_ = new THREE.Box3().setFromObject(root);
+          scene.add(root);
+
+          const rec = { id: def.id, object: root, box: world_ };
+          props.push(rec);
+          if (def.collider !== false) {
+            const pad = def.colliderPadding == null ? 0 : def.colliderPadding;
+            addCollider(
+              world_.min.x - pad, world_.max.x + pad,
+              world_.min.z - pad, world_.max.z + pad,
+              world_.min.y, world_.max.y,
+              def.id || 'prop'
+            );
+          }
+          if (--propsPending === 0) resolve(props);
+        },
+        undefined,
+        (err) => {
+          warn(`prop failed to load: ${base + def.src} (${err && err.message ? err.message : err})`);
+          if (--propsPending === 0) resolve(props);
+        }
+      );
+    }
+  });
+
   // ----- reflection env for reflective materials (one capture, at init) -----
   const capturePos = (geo.envCapture && geo.envCapture.position) || [0, 2, 0];
   const cubeRT = new THREE.WebGLCubeRenderTarget(128, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
@@ -491,5 +691,9 @@ export function buildWorld(scene, world, reduceMotion) {
     }
   }
 
-  return { colliders, bounds, update, elementsById, waterVolumes };
+  return {
+    colliders, bounds, update, elementsById, waterVolumes,
+    atmosphere, props, propsReady,
+    get propsPending() { return propsPending; }
+  };
 }

@@ -30,6 +30,47 @@
     "fogColor": "#1a1712",
     "fogDensity": 0.012
   },
+  "sky": {
+    "type": "gradient",
+    "top": "#241c52",
+    "horizon": "#c2601f",
+    "ground": "#160d08",
+    "horizonAt": 0.5
+  },
+  "atmosphere": {
+    "fog": { "color": "#2c1c11", "density": 0.016 },
+    "bloom": { "strength": 0.45, "wide": 0.36, "threshold": 0.78, "knee": 0.34 },
+    "grade": {
+      "exposure": 1.05,
+      "contrast": 1.18,
+      "saturation": 1.08,
+      "tint": "#2a1a06",
+      "lift": 0.06,
+      "highlightTint": "#ffd39a",
+      "highlight": 0.45,
+      "vignette": 1.1,
+      "grain": 0.03
+    },
+    "ambient": { "color": "#2e1a10", "intensity": 0.5 },
+    "key": {
+      "color": "#ff9a4a",
+      "intensity": 0.85,
+      "direction": [-20, 5, 16],
+      "skyColor": "#4a2f5c",
+      "groundColor": "#160d07",
+      "hemisphereIntensity": 0.7
+    }
+  },
+  "props": [
+    {
+      "id": "plaza-cycle",
+      "src": "props/cycle.glb",
+      "position": [3.2, 0, 3.4],
+      "yaw": 0.9,
+      "scale": 2.1,
+      "colliderPadding": 0.05
+    }
+  ],
   "bounds": { "minX": -14.5, "maxX": 14.5, "minZ": -19.8, "maxZ": 9.4 },
   "triggers": [
     {
@@ -81,17 +122,17 @@
     "seed": 20260807,
     "envCapture": { "position": [0, 2, -6] },
     "materials": {
-      "stone": { "kind": "flat", "color": "#3a3630", "roughness": 0.9, "metalness": 0.05 },
-      "interiorFloor": { "kind": "flat", "color": "#141210", "roughness": 0.95, "metalness": 0.02 },
-      "wall": { "kind": "flat", "color": "#2c2a26", "roughness": 0.95, "metalness": 0.02 },
-      "interiorWall": { "kind": "flat", "color": "#1a1714", "roughness": 0.96, "metalness": 0.02 },
-      "pillar": { "kind": "flat", "color": "#514a3e", "roughness": 0.8, "metalness": 0.1 },
-      "southWall": { "kind": "flat", "color": "#332f28", "roughness": 0.9, "metalness": 0.03 },
+      "stone": { "kind": "flat", "color": "#6b5a45", "roughness": 0.92, "metalness": 0.04, "texture": "flagstone", "tileScale": 3.6, "textureOptions": { "rows": 3 } },
+      "interiorFloor": { "kind": "flat", "color": "#3a3026", "roughness": 0.95, "metalness": 0.02, "texture": "flagstone", "tileScale": 2.0, "textureOptions": { "rows": 3 } },
+      "wall": { "kind": "flat", "color": "#7a6647", "roughness": 0.95, "metalness": 0.02, "texture": "sandstone", "tileScale": 3.0, "textureOptions": { "rows": 5, "cols": 3 } },
+      "interiorWall": { "kind": "flat", "color": "#4a3a2c", "roughness": 0.96, "metalness": 0.02, "texture": "brick", "tileScale": 1.8, "textureOptions": { "rows": 8, "cols": 4 } },
+      "pillar": { "kind": "flat", "color": "#8a7350", "roughness": 0.82, "metalness": 0.06, "texture": "sandstone", "tileScale": 2.0, "textureOptions": { "rows": 6, "cols": 2 } },
+      "southWall": { "kind": "flat", "color": "#6f5c40", "roughness": 0.9, "metalness": 0.03, "texture": "sandstone", "tileScale": 2.6, "textureOptions": { "rows": 4, "cols": 3 } },
       "brazierBody": { "kind": "flat", "color": "#20140c", "roughness": 0.6, "metalness": 0.4 },
       "brazierGlow": { "kind": "glow", "colorFrom": "accent", "opacity": 0.55 },
-      "fountainBase": { "kind": "flat", "color": "#46433a", "roughness": 0.85, "metalness": 0.05 },
+      "fountainBase": { "kind": "flat", "color": "#8d7856", "roughness": 0.86, "metalness": 0.04, "texture": "sandstone", "tileScale": 1.3, "textureOptions": { "rows": 4, "cols": 2 } },
       "fountainGlow": { "kind": "glow", "colorFrom": "primary", "opacity": 0.3 },
-      "plazaLampPole": { "kind": "flat", "color": "#26221c", "roughness": 0.65, "metalness": 0.6 },
+      "plazaLampPole": { "kind": "flat", "color": "#3a3128", "roughness": 0.65, "metalness": 0.45 },
       "lampLens": { "kind": "tint", "tintFrom": "primary", "tintMix": 0.6 }
     },
     "elements": [
@@ -131,14 +172,11 @@
     ],
     "lights": [
       { "id": "brazier-light", "type": "point", "colorFrom": "accent", "position": [0, 1.9, -17.8], "intensity": 140, "distance": 10, "decay": 2.0, "flicker": { "speed": 2.0, "depth": 0.3 }, "linkedElementId": "brazier-glow" },
-      { "id": "fountain-light", "type": "point", "colorFrom": "primary", "position": [0, 1.6, -2], "intensity": 220, "distance": 14, "decay": 2.0 },
+      { "id": "fountain-light", "type": "point", "colorFrom": "primary", "position": [0, 1.6, -2], "intensity": 110, "distance": 12, "decay": 2.0 },
       { "id": "lamp-nw-light", "type": "point", "tintFrom": "primary", "position": [-11, 5.2, -10], "intensity": 280, "distance": 14, "decay": 2.0 },
       { "id": "lamp-ne-light", "type": "point", "tintFrom": "primary", "position": [11, 5.2, -10], "intensity": 280, "distance": 14, "decay": 2.0 },
       { "id": "lamp-sw-light", "type": "point", "tintFrom": "primary", "position": [-11, 5.2, 7], "intensity": 280, "distance": 14, "decay": 2.0 },
-      { "id": "lamp-se-light", "type": "point", "tintFrom": "primary", "position": [11, 5.2, 7], "intensity": 280, "distance": 14, "decay": 2.0 },
-      { "id": "hemi", "type": "hemisphere", "skyColor": "#3a3020", "groundColor": "#0a0806", "intensity": 0.9 },
-      { "id": "sun", "type": "directional", "color": "#e9caa0", "intensity": 0.55, "position": [10, 22, 14] },
-      { "id": "fill", "type": "ambient", "color": "#241c12", "intensity": 0.4 }
+      { "id": "lamp-se-light", "type": "point", "tintFrom": "primary", "position": [11, 5.2, 7], "intensity": 280, "distance": 14, "decay": 2.0 }
     ]
   }
 }

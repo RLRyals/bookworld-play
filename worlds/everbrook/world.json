@@ -10,7 +10,7 @@
   ],
   "spawn": {
     "position": [0, 0, -16],
-    "yaw": 0,
+    "yaw": 3.14159,
     "pitch": -0.02
   },
   "player": {
@@ -23,6 +23,37 @@
     "accent": "#c9573f",
     "fogColor": "#caa06a",
     "fogDensity": 0.009
+  },
+  "sky": {
+    "type": "gradient",
+    "top": "#2f6fae",
+    "horizon": "#f7d09b",
+    "ground": "#6d5334",
+    "horizonAt": 0.5
+  },
+  "atmosphere": {
+    "fog": { "color": "#dcc09a", "density": 0.0062 },
+    "bloom": { "strength": 0.24, "wide": 0.18, "threshold": 0.86, "knee": 0.3 },
+    "grade": {
+      "exposure": 0.92,
+      "contrast": 1.08,
+      "saturation": 1.15,
+      "tint": "#1b3350",
+      "lift": 0.07,
+      "highlightTint": "#ffeccb",
+      "highlight": 0.3,
+      "vignette": 0.7,
+      "grain": 0.014
+    },
+    "ambient": { "color": "#54627a", "intensity": 0.45 },
+    "key": {
+      "color": "#ffd8a1",
+      "intensity": 1.15,
+      "direction": [16, 8, -7],
+      "skyColor": "#9cc4e8",
+      "groundColor": "#6b5230",
+      "hemisphereIntensity": 0.7
+    }
   },
   "bounds": { "minX": -18, "maxX": 18, "minZ": -22, "maxZ": 14 },
   "triggers": [
@@ -96,20 +127,20 @@
     "seed": 20260807,
     "envCapture": { "position": [0, 3, -4] },
     "materials": {
-      "cobblestone": { "kind": "flat", "color": "#8a7355", "roughness": 0.88, "metalness": 0.02 },
+      "cobblestone": { "kind": "flat", "color": "#8a7355", "roughness": 0.9, "metalness": 0.02, "texture": "cobble", "tileScale": 3.4 },
       "brook-water": { "kind": "puddle", "color": "#3d6f74", "roughness": 0.08, "metalness": 0.85, "envMapIntensity": 1.2 },
-      "cottage-wall-1": { "kind": "flat", "color": "#e6d3af", "roughness": 0.85, "metalness": 0.02 },
-      "cottage-wall-2": { "kind": "flat", "color": "#dcc194", "roughness": 0.85, "metalness": 0.02 },
-      "cottage-wall-3": { "kind": "flat", "color": "#e2caa0", "roughness": 0.85, "metalness": 0.02 },
-      "roof-1": { "kind": "flat", "color": "#a1462f", "roughness": 0.75, "metalness": 0.05 },
-      "roof-2": { "kind": "flat", "color": "#8f3e2a", "roughness": 0.75, "metalness": 0.05 },
-      "roof-3": { "kind": "flat", "color": "#b0522f", "roughness": 0.75, "metalness": 0.05 },
-      "well-stone": { "kind": "flat", "color": "#9c8f78", "roughness": 0.9, "metalness": 0.02 },
-      "well-post": { "kind": "flat", "color": "#5a4530", "roughness": 0.8, "metalness": 0.05 },
-      "stall-wood": { "kind": "flat", "color": "#6b4c30", "roughness": 0.82, "metalness": 0.03 },
-      "canopy-1": { "kind": "tint", "color": "#c9573f", "tintFrom": "accent", "tintMix": 0.2 },
-      "canopy-2": { "kind": "tint", "color": "#e8b34d", "tintFrom": "primary", "tintMix": 0.2 },
-      "lamp-post": { "kind": "flat", "color": "#4a3a28", "roughness": 0.6, "metalness": 0.4 },
+      "cottage-wall-1": { "kind": "flat", "color": "#e6d3af", "roughness": 0.88, "metalness": 0.02, "texture": "plaster", "tileScale": 2.4 },
+      "cottage-wall-2": { "kind": "flat", "color": "#dcc194", "roughness": 0.88, "metalness": 0.02, "texture": "plaster", "tileScale": 2.1 },
+      "cottage-wall-3": { "kind": "flat", "color": "#e2caa0", "roughness": 0.88, "metalness": 0.02, "texture": "brick", "tileScale": 2.2, "textureOptions": { "rows": 7, "cols": 4 } },
+      "roof-1": { "kind": "flat", "color": "#a1462f", "roughness": 0.8, "metalness": 0.04, "texture": "roofTile", "tileScale": 1.5 },
+      "roof-2": { "kind": "flat", "color": "#b8945a", "roughness": 0.9, "metalness": 0.02, "texture": "thatch", "tileScale": 1.7 },
+      "roof-3": { "kind": "flat", "color": "#b0522f", "roughness": 0.8, "metalness": 0.04, "texture": "roofTile", "tileScale": 1.3 },
+      "well-stone": { "kind": "flat", "color": "#9c8f78", "roughness": 0.92, "metalness": 0.02, "texture": "sandstone", "tileScale": 1.1 },
+      "well-post": { "kind": "flat", "color": "#7d5f3d", "roughness": 0.82, "metalness": 0.04, "texture": "timber", "tileScale": 0.7, "textureOptions": { "planks": 1 } },
+      "stall-wood": { "kind": "flat", "color": "#8d6742", "roughness": 0.84, "metalness": 0.03, "texture": "timber", "tileScale": 1.1, "textureOptions": { "planks": 3 } },
+      "canopy-1": { "kind": "tint", "color": "#c9573f", "texture": "stripe", "tileScale": 1.9, "textureOptions": { "base": "#c9573f", "accent": "#f2e2c2", "rows": 5 } },
+      "canopy-2": { "kind": "tint", "color": "#e8b34d", "texture": "stripe", "tileScale": 1.9, "textureOptions": { "base": "#e8b34d", "accent": "#fbf1dc", "rows": 5 } },
+      "lamp-post": { "kind": "flat", "color": "#6a5438", "roughness": 0.62, "metalness": 0.12, "texture": "timber", "tileScale": 0.9, "textureOptions": { "planks": 1 } },
       "lamp-lens": { "kind": "tint", "tintFrom": "primary", "tintMix": 0.5, "tintToward": "#fff3d6" },
       "lamp-glow": { "kind": "glow", "tintFrom": "primary", "tintMix": 0.35, "opacity": 0.16 },
       "window-glow": { "kind": "glow", "colorFrom": "primary", "opacity": 0.4 }
@@ -159,12 +190,9 @@
       { "id": "lamp-b-glow", "type": "emissiveQuad", "position": [3, 3.4, 8], "size": [2.2, 2.2], "orientation": "vertical", "material": "lamp-glow", "collider": false }
     ],
     "lights": [
-      { "id": "lamp-a-light", "type": "point", "tintFrom": "primary", "tintMix": 0.4, "tintToward": "#fff3d6", "position": [-3, 3.5, -4], "intensity": 260, "distance": 15, "decay": 2.0 },
-      { "id": "lamp-b-light", "type": "point", "tintFrom": "primary", "tintMix": 0.4, "tintToward": "#fff3d6", "position": [3, 3.5, 8], "intensity": 260, "distance": 15, "decay": 2.0 },
-      { "id": "well-light", "type": "point", "colorFrom": "primary", "position": [0, 2.4, -4], "intensity": 35, "distance": 7, "decay": 2.0 },
-      { "id": "sun", "type": "directional", "color": "#f5c877", "intensity": 1.1, "position": [16, 14, -6] },
-      { "id": "hemi", "type": "hemisphere", "skyColor": "#e9c98a", "groundColor": "#4a3a24", "intensity": 0.9 },
-      { "id": "fill", "type": "ambient", "color": "#3c2c1a", "intensity": 0.35 }
+      { "id": "lamp-a-light", "type": "point", "tintFrom": "primary", "tintMix": 0.4, "tintToward": "#fff3d6", "position": [-3, 3.5, -4], "intensity": 90, "distance": 13, "decay": 2.0 },
+      { "id": "lamp-b-light", "type": "point", "tintFrom": "primary", "tintMix": 0.4, "tintToward": "#fff3d6", "position": [3, 3.5, 8], "intensity": 90, "distance": 13, "decay": 2.0 },
+      { "id": "well-light", "type": "point", "colorFrom": "primary", "position": [0, 2.4, -4], "intensity": 18, "distance": 6, "decay": 2.0 }
     ]
   }
 }

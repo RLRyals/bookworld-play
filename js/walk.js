@@ -44,6 +44,7 @@ function showLoadError(message) {
 
 function init(world, base) {
   document.title = world.title || 'BookWorld';
+  const loadWarnings = []; // non-fatal pack-asset failures (a texture/prop/sky that 404s)
 
   // ---------- a11y: description + zone inventory, both manifest-driven ----------
   document.getElementById('scene-description').textContent = world.description || '';
@@ -87,14 +88,19 @@ function init(world, base) {
   camera.rotation.order = 'YXZ';
 
   // ---------- the block ----------
-  const built = buildWorld(scene, world, reduce);
+  // `base` is the pack folder — every style-pack file reference (texture images, skybox
+  // panorama, glTF props) resolves against it, so a pack stays self-contained.
+  const built = buildWorld(scene, world, reduce, {
+    base,
+    warn: (msg) => { console.warn('[bookworld] ' + msg); loadWarnings.push(msg); }
+  });
   const colliders = built.colliders;
   const bounds = built.bounds;
   const waterVolumes = built.waterVolumes || [];
   const baseFogColor = scene.fog ? scene.fog.color.clone() : null;
   const baseFogDensity = scene.fog ? scene.fog.density : 0;
 
-  const post = createPost(renderer, scene, camera);
+  const post = createPost(renderer, scene, camera, built.atmosphere);
   post.params.enabled = postEnabled;
   post.setSize(innerWidth, innerHeight, pixelRatio);
 
@@ -488,6 +494,13 @@ function init(world, base) {
     bounds,
     waterVolumes,
     fps: 0,
+    // style-pack surface, for verification: which optional blocks this pack used, and
+    // whether its glTF props actually landed
+    atmosphere: built.atmosphere,
+    props: built.props,
+    propsReady: built.propsReady,
+    get propsPending() { return built.propsPending; },
+    loadWarnings,
     get state() {
       return {
         x: +pos.x.toFixed(3), z: +pos.z.toFixed(3), yaw: +yaw.toFixed(4), pitch: +pitch.toFixed(4),
@@ -502,6 +515,8 @@ function init(world, base) {
         cameraY: +camera.position.y.toFixed(5),
         cameraYaw: +(-camera.rotation.y).toFixed(5),
         cameraRoll: +camera.rotation.z.toFixed(5),
+        propsLoaded: built.props.length,
+        colliderCount: colliders.length,
         promptVisible: !promptEl.classList.contains('hidden'),
         promptText: promptEl.textContent,
         activeZone: activeZone ? activeZone.def.id : null,
