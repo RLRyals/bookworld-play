@@ -9,6 +9,7 @@ html, body {
   height: 100%;
   background: #04070a;
   overflow: hidden;
+  overscroll-behavior: none;
   font-family: system-ui, sans-serif;
   color: #eef6f1;
 }
@@ -20,6 +21,8 @@ html, body {
   height: 100%;
   display: block;
   cursor: crosshair;
+  /* left half = move drag, right half = look drag; no native pinch/scroll/double-tap-zoom */
+  touch-action: none;
 }
 #bg:focus-visible {
   outline: 2px solid #2fe6a4;
@@ -108,10 +111,20 @@ html, body {
   color: #eef6f1;
   font-size: 0.95rem;
   letter-spacing: 0.02em;
-  pointer-events: none;
+  /* auto (not none): the prompt itself IS the touch "press E" equivalent — tap it to activate */
+  pointer-events: auto;
+  touch-action: manipulation;
+  cursor: pointer;
 }
-.prompt.hidden { display: none; }
+.prompt.hidden { display: none; pointer-events: none; }
 .prompt b { color: #2fe6a4; }
+
+@media (pointer: coarse) {
+  .prompt {
+    padding: 0.75em 1.4em;
+    font-size: 1.05rem;
+  }
+}
 
 .fps {
   position: fixed;

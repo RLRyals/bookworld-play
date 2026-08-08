@@ -16,7 +16,13 @@
   "player": {
     "eyeHeight": 1.65,
     "walkSpeed": 2.8,
-    "radius": 0.45
+    "radius": 0.45,
+    "jumpHeight": 1.0,
+    "stepHeight": 0.5,
+    "swimSpeed": 1.4
+  },
+  "respawn": {
+    "fallY": -20
   },
   "palette": {
     "primary": "#e8c469",
@@ -119,7 +125,9 @@
       { "id": "lamp-sw-pole", "type": "box", "position": [-11, 2.5, 7], "size": [0.5, 5, 0.5], "material": "plazaLampPole" },
       { "id": "lamp-sw-lens", "type": "emissiveQuad", "position": [-11, 5.05, 7], "size": [0.6, 0.3], "orientation": "horizontal", "material": "lampLens", "collider": false },
       { "id": "lamp-se-pole", "type": "box", "position": [11, 2.5, 7], "size": [0.5, 5, 0.5], "material": "plazaLampPole" },
-      { "id": "lamp-se-lens", "type": "emissiveQuad", "position": [11, 5.05, 7], "size": [0.6, 0.3], "orientation": "horizontal", "material": "lampLens", "collider": false }
+      { "id": "lamp-se-lens", "type": "emissiveQuad", "position": [11, 5.05, 7], "size": [0.6, 0.3], "orientation": "horizontal", "material": "lampLens", "collider": false },
+
+      { "id": "pool-water", "type": "water", "bounds": { "minX": 4, "maxX": 9, "minZ": -9, "maxZ": -4 }, "surfaceY": -0.15, "floorY": -1.4, "tint": "#1c4d66", "fogDensity": 0.05 }
     ],
     "lights": [
       { "id": "brazier-light", "type": "point", "colorFrom": "accent", "position": [0, 1.9, -17.8], "intensity": 140, "distance": 10, "decay": 2.0, "flicker": { "speed": 2.0, "depth": 0.3 }, "linkedElementId": "brazier-glow" },

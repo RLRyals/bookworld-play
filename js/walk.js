@@ -58,6 +58,14 @@ function init(world, base) {
   const status = document.getElementById('walk-status');
   function announce(msg) { status.textContent = msg; }
 
+  // touch is additive to keyboard+mouse (feature-detect, never a mode switch), but a
+  // first-time phone visitor still needs to be told the gestures exist
+  if (matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0) {
+    const li = document.createElement('li');
+    li.innerHTML = '<b>Touch</b>: drag the left half to walk &middot; drag the right half to look &middot; tap the glowing prompt to interact';
+    document.querySelector('#walk-help ul').appendChild(li);
+  }
+
   // ---------- renderer ----------
   const canvas = document.getElementById('bg');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !postEnabled, powerPreference: 'high-performance' });
@@ -82,6 +90,9 @@ function init(world, base) {
   const built = buildWorld(scene, world, reduce);
   const colliders = built.colliders;
   const bounds = built.bounds;
+  const waterVolumes = built.waterVolumes || [];
+  const baseFogColor = scene.fog ? scene.fog.color.clone() : null;
+  const baseFogDensity = scene.fog ? scene.fog.density : 0;
 
   const post = createPost(renderer, scene, camera);
   post.params.enabled = postEnabled;
@@ -93,23 +104,85 @@ function init(world, base) {
   const EYE = playerCfg.eyeHeight == null ? 1.65 : playerCfg.eyeHeight;
   const SPEED = playerCfg.walkSpeed == null ? 2.8 : playerCfg.walkSpeed;
   const RADIUS = playerCfg.radius == null ? 0.45 : playerCfg.radius;
+  const JUMP_HEIGHT = playerCfg.jumpHeight == null ? 1.1 : playerCfg.jumpHeight;
+  const STEP_HEIGHT = playerCfg.stepHeight == null ? 0.45 : playerCfg.stepHeight;
+  const SWIM_SPEED = playerCfg.swimSpeed == null ? 1.6 : playerCfg.swimSpeed;
   const TURN = 1.9; // rad/s for keyboard turning
 
-  const pos = new THREE.Vector3(
-    (spawn.position && spawn.position[0]) || 0,
-    EYE,
-    (spawn.position && spawn.position[2]) || 0
-  );
+  // body height used for vertical collision (step/ceiling checks) — a little taller
+  // than eye height so a ceiling actually caps the head, not just the eye point
+  const BODY_HEIGHT = EYE + 0.2;
+  const GRAVITY = 16; // m/s^2, tuned for a Minecraft-ish short arc, not real-world 9.8
+  const MAX_FALL_SPEED = 22;
+  const JUMP_VELOCITY = Math.sqrt(2 * GRAVITY * JUMP_HEIGHT);
+  const SWIM_RISE_SPEED = SWIM_SPEED * 0.8;
+  const SWIM_SINK_SPEED = SWIM_SPEED * 0.6;
+  const SWIM_DAMPING = 0.9; // per-frame-independent velocity decay while swimming, no input
+  const respawnCfg = world.respawn || {};
+  const RESPAWN_Y = respawnCfg.fallY == null ? -25 : respawnCfg.fallY;
+
+  const spawnPos = (spawn.position || [0, 0, 0]);
+  const pos = new THREE.Vector3(spawnPos[0], 0, spawnPos[2]);
+  let feetY = 0; // ground-relative height of the player's feet; camera = feetY + EYE + bob
+  let vy = 0; // vertical velocity, m/s
+  let grounded = true;
+  let swimming = false;
+  let currentWater = null; // the water volume the player is currently swimming in
   let yaw = spawn.yaw || 0;
   let pitch = spawn.pitch || 0;
   let smoothYaw = yaw, smoothPitch = pitch;
   let bobPhase = 0, bobY = 0, bobRoll = 0;
 
+  // ---------- vertical helpers ----------
+  function findWaterAt(x, z) {
+    for (let i = 0; i < waterVolumes.length; i++) {
+      const w = waterVolumes[i];
+      if (x > w.minX && x < w.maxX && z > w.minZ && z < w.maxZ) return w;
+    }
+    return null;
+  }
+
+  // ground/step support at (x,z): the higher of "open ground" (0, or a water
+  // volume's floor if the point is over a dry-below pit) and any collider top
+  // whose footprint contains the point AND whose top is within step reach of
+  // refFeetY (the player's height going into this check). That gate matters for
+  // colliders whose underside floats above the ground (a beam, an overhang): without
+  // it, its top would count as "the support here" even while the player is standing
+  // or falling well below it, which would teleport them through their own ceiling.
+  // A step/ledge the player has already reached (refFeetY at/above the top, e.g. after
+  // jumping onto it) or open ground below still resolves correctly either way.
+  function supportHeight(x, z, refFeetY) {
+    const ref = refFeetY == null ? Infinity : refFeetY;
+    let h = 0;
+    const w = findWaterAt(x, z);
+    if (w) h = w.floorY;
+    for (let i = 0; i < colliders.length; i++) {
+      const c = colliders[i];
+      if (x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ && c.maxY <= ref + STEP_HEIGHT + 1e-6) {
+        h = Math.max(h, c.maxY);
+      }
+    }
+    return h;
+  }
+
+  // true if collider c should block horizontal movement given the player's CURRENT
+  // feet height: a wall unless it's low enough to step onto, or the player is
+  // already standing/airborne above its top (jumped clear, or landed on it).
+  function isWall(c, currentFeetY) {
+    const feetTop = currentFeetY + BODY_HEIGHT;
+    if (!(c.minY < feetTop && c.maxY > currentFeetY)) return false; // no vertical overlap
+    const delta = c.maxY - currentFeetY;
+    if (delta <= STEP_HEIGHT + 1e-6) return false; // step-up, not a wall
+    if (currentFeetY >= c.maxY - 1e-6) return false; // already above the top
+    return true;
+  }
+
   // ---------- collision: circle vs axis-aligned rectangles, then hard bounds ----------
-  function resolve(p) {
+  function resolveHorizontal(p, currentFeetY) {
     for (let pass = 0; pass < 2; pass++) {
       for (let i = 0; i < colliders.length; i++) {
         const c = colliders[i];
+        if (!isWall(c, currentFeetY)) continue;
         const minX = c.minX - RADIUS, maxX = c.maxX + RADIUS;
         const minZ = c.minZ - RADIUS, maxZ = c.maxZ + RADIUS;
         if (p.x > minX && p.x < maxX && p.z > minZ && p.z < maxZ) {
@@ -125,9 +198,30 @@ function init(world, base) {
     // hard world envelope — belt and braces, the player can never be outside it
     p.x = Math.max(bounds.minX, Math.min(bounds.maxX, p.x));
     p.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, p.z));
-    p.y = EYE;
   }
-  resolve(pos);
+
+  // caps a rising feetY against the underside of any collider whose footprint the
+  // player currently occupies — "no head-through-ceiling"
+  function capCeiling(newFeetY) {
+    if (newFeetY <= feetY) return newFeetY;
+    for (let i = 0; i < colliders.length; i++) {
+      const c = colliders[i];
+      if (!(pos.x > c.minX && pos.x < c.maxX && pos.z > c.minZ && pos.z < c.maxZ)) continue;
+      if (c.minY > feetY && c.minY < newFeetY + BODY_HEIGHT) {
+        const capped = c.minY - BODY_HEIGHT;
+        if (capped < newFeetY) { newFeetY = Math.max(feetY, capped); vy = Math.min(vy, 0); }
+      }
+    }
+    return newFeetY;
+  }
+
+  function respawn() {
+    pos.x = spawnPos[0]; pos.z = spawnPos[2];
+    feetY = 0; vy = 0; grounded = true; swimming = false; currentWater = null;
+    announce('You fell out of the world. Back at the start.');
+  }
+
+  resolveHorizontal(pos, feetY);
 
   // ---------- input ----------
   const keys = Object.create(null);
@@ -137,10 +231,63 @@ function init(world, base) {
   const MOVE_KEYS = {
     KeyW: 1, KeyS: 1, KeyA: 1, KeyD: 1,
     ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1,
-    KeyR: 1, KeyF: 1
+    KeyR: 1, KeyF: 1,
+    Space: 1, KeyJ: 1 // jump (grounded) / rise (swimming) — Space is primary, J the keyboard-only alternative
   };
 
   function clearKeys() { for (const k in keys) keys[k] = false; }
+
+  // ---------- touch: left-half drag = move, right-half drag = look, coexists with
+  // keyboard+mouse (feature-detect only, never a mode switch — both paths stay live
+  // and just add together in the frame loop below). No pinch/zoom handling: touch-action
+  // none on the canvas (css/walk.css) already suppresses that gesture entirely.
+  const isCoarsePointer = matchMedia('(pointer: coarse)').matches;
+  let moveTouch = null; // { id, startX, startY, curX, curY }
+  let lookTouch = null; // { id, lastX, lastY }
+  const TOUCH_LOOK_SENSITIVITY = 0.0035;
+  const TOUCH_MOVE_DEADZONE = 10; // px, before a left-half drag counts as a direction
+
+  function clearTouches() { moveTouch = null; lookTouch = null; }
+
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (inputLocked) return;
+    for (const touch of e.changedTouches) {
+      const isLeftHalf = touch.clientX < innerWidth / 2;
+      if (isLeftHalf && !moveTouch) {
+        moveTouch = { id: touch.identifier, startX: touch.clientX, startY: touch.clientY, curX: touch.clientX, curY: touch.clientY };
+      } else if (!isLeftHalf && !lookTouch) {
+        lookTouch = { id: touch.identifier, lastX: touch.clientX, lastY: touch.clientY };
+      }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (inputLocked) return;
+    for (const touch of e.changedTouches) {
+      if (moveTouch && touch.identifier === moveTouch.id) {
+        moveTouch.curX = touch.clientX;
+        moveTouch.curY = touch.clientY;
+      } else if (lookTouch && touch.identifier === lookTouch.id) {
+        const dx = touch.clientX - lookTouch.lastX;
+        const dy = touch.clientY - lookTouch.lastY;
+        lookTouch.lastX = touch.clientX;
+        lookTouch.lastY = touch.clientY;
+        yaw += dx * TOUCH_LOOK_SENSITIVITY;
+        pitch = Math.max(-1.1, Math.min(1.1, pitch - dy * TOUCH_LOOK_SENSITIVITY));
+      }
+    }
+  }, { passive: false });
+
+  function releaseTouches(e) {
+    for (const touch of e.changedTouches) {
+      if (moveTouch && touch.identifier === moveTouch.id) moveTouch = null;
+      if (lookTouch && touch.identifier === lookTouch.id) lookTouch = null;
+    }
+  }
+  canvas.addEventListener('touchend', releaseTouches);
+  canvas.addEventListener('touchcancel', releaseTouches);
 
   addEventListener('keydown', (e) => {
     if (e.key === 'Escape') return; // handled by the overlays / pointer lock
@@ -152,14 +299,15 @@ function init(world, base) {
     keys[e.code] = true;
   });
   addEventListener('keyup', (e) => { keys[e.code] = false; });
-  addEventListener('blur', clearKeys);
+  addEventListener('blur', () => { clearKeys(); clearTouches(); });
   document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement !== canvas) clearKeys();
   });
 
-  // mouse-look via pointer lock (optional — the keyboard path is complete without it)
+  // mouse-look via pointer lock (optional — the keyboard/touch paths are complete without
+  // it; skipped on coarse pointers, where pointer lock is either unsupported or meaningless)
   canvas.addEventListener('click', () => {
-    if (inputLocked) return;
+    if (inputLocked || isCoarsePointer) return;
     if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
   });
   addEventListener('mousemove', (e) => {
@@ -178,21 +326,23 @@ function init(world, base) {
 
   let resumeState = null;
   function suspendWalk() {
-    resumeState = { x: pos.x, z: pos.z, yaw, pitch };
+    resumeState = { x: pos.x, z: pos.z, yaw, pitch, feetY, vy };
     inputLocked = true;
     clearKeys();
+    clearTouches();
     if (document.pointerLockElement === canvas) document.exitPointerLock();
   }
   function resumeWalk() {
     if (resumeState) {
-      pos.x = resumeState.x; pos.z = resumeState.z; pos.y = EYE;
+      pos.x = resumeState.x; pos.z = resumeState.z;
+      feetY = resumeState.feetY; vy = resumeState.vy;
       yaw = resumeState.yaw; pitch = resumeState.pitch;
       smoothYaw = yaw; smoothPitch = pitch;
       resumeState = null;
     }
     inputLocked = false;
     canvas.focus();
-    announce('Back on the street. You are where you left off.');
+    announce('Back where you left off.');
   }
 
   function openProse(text) {
@@ -289,6 +439,11 @@ function init(world, base) {
     else announce(`Nothing is wired to ${z.def.label}.`);
   }
 
+  // tap-to-activate: the prompt pill IS the touch equivalent of "press E" (css/walk.css
+  // gives it pointer-events + a touch-friendly hit target; it stays aria-hidden since the
+  // sr-only live-region announcement above already carries this to assistive tech)
+  promptEl.addEventListener('click', () => interact());
+
   function interact() {
     if (!activeZone) return;
     if (activeZone.def.once && activeZone.fired) {
@@ -331,6 +486,7 @@ function init(world, base) {
     post: post.params,
     colliders,
     bounds,
+    waterVolumes,
     fps: 0,
     get state() {
       return {
@@ -338,6 +494,11 @@ function init(world, base) {
         // the RENDERED camera, so the reduced-motion branch is measurable and not
         // merely asserted: with reduce, cameraY === eyeHeight and cameraYaw === yaw
         eyeHeight: EYE,
+        feetY: +feetY.toFixed(4),
+        vy: +vy.toFixed(4),
+        grounded,
+        swimming,
+        currentWaterId: currentWater ? currentWater.id : null,
         cameraY: +camera.position.y.toFixed(5),
         cameraYaw: +(-camera.rotation.y).toFixed(5),
         cameraRoll: +camera.rotation.z.toFixed(5),
@@ -348,13 +509,20 @@ function init(world, base) {
         cutsceneSrc: cutsceneVideo.getAttribute('src'),
         proseOpen: !proseOverlay.classList.contains('hidden'),
         inputLocked,
+        moveTouchActive: !!moveTouch,
+        lookTouchActive: !!lookTouch,
         zones: zones.map((z) => ({ id: z.def.id, inside: z.inside, fired: z.fired }))
       };
     },
     // screenshot/debug aid only — moves the camera, changes nothing else
-    debugTeleport(x, z, y, p) {
-      pos.set(x, EYE, z);
-      resolve(pos);
+    debugTeleport(x, z, y, p, y0) {
+      pos.set(x, 0, z);
+      feetY = y0 == null ? supportHeight(x, z) : y0;
+      vy = 0; grounded = true;
+      const w = findWaterAt(pos.x, pos.z);
+      swimming = !!(w && feetY < w.surfaceY);
+      currentWater = swimming ? w : null;
+      resolveHorizontal(pos, feetY);
       if (y != null) { yaw = y; smoothYaw = y; }
       if (p != null) { pitch = p; smoothPitch = p; }
       for (const zn of zones) zn.inside = zoneContains(zn, pos.x, pos.z);
@@ -372,6 +540,7 @@ function init(world, base) {
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
   const step = new THREE.Vector3();
+  let swimBobPhase = 0, swimBobY = 0;
 
   function frame() {
     requestAnimationFrame(frame);
@@ -391,39 +560,116 @@ function init(world, base) {
       if (keys.KeyA) strafe -= 1;
       if (keys.KeyD) strafe += 1;
 
+      // left-half touch drag: a direction vector from the drag origin, same shape as the
+      // keyboard's fwd/strafe (added together, then clamped — either input alone or both
+      // at once behave the same as keyboard-only did)
+      if (moveTouch) {
+        const dx = moveTouch.curX - moveTouch.startX;
+        const dy = moveTouch.curY - moveTouch.startY;
+        const dist = Math.hypot(dx, dy);
+        if (dist > TOUCH_MOVE_DEADZONE) {
+          fwd += -dy / dist;
+          strafe += dx / dist;
+        }
+      }
+      fwd = Math.max(-1, Math.min(1, fwd));
+      strafe = Math.max(-1, Math.min(1, strafe));
+
+      const jumpKey = !!(keys.Space || keys.KeyJ);
+      const sinkKey = !!(keys.ShiftLeft || keys.ShiftRight);
+
+      // ---------- horizontal movement ----------
       if (fwd || strafe) {
         forward.set(Math.sin(yaw), 0, -Math.cos(yaw));
         right.set(Math.cos(yaw), 0, Math.sin(yaw));
         step.set(0, 0, 0).addScaledVector(forward, fwd).addScaledVector(right, strafe);
         if (step.lengthSq() > 0) step.normalize();
-        const slow = keys.ShiftLeft || keys.ShiftRight ? 0.45 : 1;
-        const dist = SPEED * slow * dt;
+        // Shift slows walking on land; underwater it's repurposed as "sink" instead
+        const slow = !swimming && sinkKey ? 0.45 : 1;
+        const baseSpeed = swimming ? SWIM_SPEED : SPEED;
+        const dist = baseSpeed * slow * dt;
         pos.addScaledVector(step, dist);
-        resolve(pos);
-        if (!reduce) bobPhase += dist * 2.6;
-      } else if (!reduce) {
+        resolveHorizontal(pos, feetY);
+        if (!reduce && !swimming) bobPhase += dist * 2.6;
+      } else if (!reduce && !swimming) {
         bobPhase += dt * 0.6;
       }
+
+      // ---------- vertical physics ----------
+      const waterHere = findWaterAt(pos.x, pos.z);
+      if (swimming) {
+        // still swimming only while inside the same volume's XZ footprint and below its surface
+        if (!waterHere || feetY >= waterHere.surfaceY + 0.05) {
+          swimming = false; currentWater = null; vy = Math.min(vy, 0);
+        }
+      } else if (waterHere && feetY < waterHere.surfaceY && !grounded) {
+        // falling into a water volume from above transitions to swim mode
+        swimming = true; currentWater = waterHere; vy = Math.min(vy, -0.5);
+      }
+
+      if (swimming) {
+        if (jumpKey) vy = SWIM_RISE_SPEED;
+        else if (sinkKey) vy = -SWIM_SINK_SPEED;
+        else vy *= Math.pow(SWIM_DAMPING, dt * 60);
+        let newFeetY = feetY + vy * dt;
+        newFeetY = Math.max(currentWater.floorY, Math.min(currentWater.surfaceY, newFeetY));
+        feetY = newFeetY;
+        grounded = feetY <= currentWater.floorY + 1e-6;
+        if (!reduce) { swimBobPhase += dt * 1.6; swimBobY = Math.sin(swimBobPhase) * 0.03; }
+        else swimBobY = 0;
+      } else {
+        vy -= GRAVITY * dt;
+        if (vy < -MAX_FALL_SPEED) vy = -MAX_FALL_SPEED;
+        if (jumpKey && grounded) vy = JUMP_VELOCITY;
+        let newFeetY = feetY + vy * dt;
+        newFeetY = capCeiling(newFeetY);
+        // the kill-floor check runs on the RAW integrated height, before the ground/step
+        // snap below — open ground is unconditionally supported at 0, so once a landing
+        // clamp has run there is no longer a "how far below the map" signal left to catch
+        if (newFeetY < RESPAWN_Y) {
+          respawn();
+        } else {
+          const support = supportHeight(pos.x, pos.z, feetY);
+          if (newFeetY <= support) { newFeetY = support; vy = 0; grounded = true; }
+          else { grounded = false; }
+          feetY = newFeetY;
+        }
+        swimBobY = 0;
+      }
+
       updateZones();
     }
 
     // camera damping + head-bob: both are motion effects, both off under
-    // prefers-reduced-motion (the view then tracks input exactly)
+    // prefers-reduced-motion (the view then tracks input exactly). Swim bob follows
+    // the same reduced-motion gate (see swimBobY above — it's forced to 0 there).
     if (reduce) {
       smoothYaw = yaw; smoothPitch = pitch; bobY = 0; bobRoll = 0;
     } else {
       const k = 1 - Math.exp(-dt / 0.035); // frame-rate independent, ~35ms time constant
       smoothYaw += (yaw - smoothYaw) * k;
       smoothPitch += (pitch - smoothPitch) * k;
-      const moving = !inputLocked && (keys.KeyW || keys.KeyS || keys.KeyA || keys.KeyD || keys.ArrowUp || keys.ArrowDown);
+      const moving = !inputLocked && !swimming && (keys.KeyW || keys.KeyS || keys.KeyA || keys.KeyD || keys.ArrowUp || keys.ArrowDown);
       const targetBob = moving ? Math.sin(bobPhase) * 0.042 : 0;
       const targetRoll = moving ? Math.sin(bobPhase * 0.5) * 0.007 : 0;
       bobY += (targetBob - bobY) * Math.min(1, dt * 9);
       bobRoll += (targetRoll - bobRoll) * Math.min(1, dt * 9);
     }
 
-    camera.position.set(pos.x, pos.y + bobY, pos.z);
+    camera.position.set(pos.x, feetY + EYE + bobY + swimBobY, pos.z);
     camera.rotation.set(smoothPitch, -smoothYaw, bobRoll);
+
+    // underwater tint/fog: swap the scene fog toward the water volume's tint while the
+    // camera itself is below the surface, restore vanilla fog once it surfaces
+    if (scene.fog && baseFogColor) {
+      if (swimming && currentWater && camera.position.y < currentWater.surfaceY) {
+        scene.fog.color.set(currentWater.tint);
+        scene.fog.density = currentWater.fogDensity;
+      } else {
+        scene.fog.color.copy(baseFogColor);
+        scene.fog.density = baseFogDensity;
+      }
+    }
 
     built.update(t, camera, renderer);
     post.render(t);

@@ -20,7 +20,13 @@
   "player": {
     "eyeHeight": 1.65,
     "walkSpeed": 2.8,
-    "radius": 0.45
+    "radius": 0.45,
+    "jumpHeight": 1.1,
+    "stepHeight": 0.4,
+    "swimSpeed": 1.6
+  },
+  "respawn": {
+    "fallY": -20
   },
   "palette": {
     "primary": "#2fe6a4",
@@ -2315,6 +2321,39 @@
         "orientation": "horizontal",
         "material": "puddle",
         "collider": false
+      },
+      {
+        "id": "curb-step",
+        "type": "box",
+        "position": [2, 0.15, 10],
+        "size": [1.4, 0.3, 1.4],
+        "material": "curb",
+        "collider": true
+      },
+      {
+        "id": "curb-jump",
+        "type": "box",
+        "position": [-2, 0.325, 10],
+        "size": [1.4, 0.65, 1.4],
+        "material": "curb",
+        "collider": true
+      },
+      {
+        "id": "low-beam",
+        "type": "box",
+        "position": [0, 2.35, 15],
+        "size": [3, 0.3, 1],
+        "material": "lamp-pole",
+        "collider": true
+      },
+      {
+        "id": "cistern-water",
+        "type": "water",
+        "bounds": { "minX": 1, "maxX": 4, "minZ": -20.5, "maxZ": -17.5 },
+        "surfaceY": -0.4,
+        "floorY": -2.2,
+        "tint": "#0f3d47",
+        "fogDensity": 0.09
       }
     ],
     "lights": [

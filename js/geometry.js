@@ -352,26 +352,39 @@ export function buildWorld(scene, world, reduceMotion) {
     return mat;
   }
 
-  function addCollider(minX, maxX, minZ, maxZ, label) {
-    colliders.push({ minX, maxX, minZ, maxZ, label });
+  // minY/maxY let the controller do vertical-aware collision (step-up, jump-clear,
+  // ceiling caps) instead of the old XZ-only push-out. Every collider carries a height
+  // band even though most existing colliders (buildings, poles) sit on the ground with
+  // minY 0 — that's what makes them permanent walls (their band always overlaps the
+  // player's body and their top is never within jump/step reach).
+  function addCollider(minX, maxX, minZ, maxZ, minY, maxY, label) {
+    colliders.push({ minX, maxX, minZ, maxZ, minY, maxY, label });
   }
+
+  const waterVolumes = [];
 
   for (const el of geo.elements) {
     elementsById[el.id] = el;
     const size = el.size || [1, 1, 1];
-    const material = getMaterial(el.material, size);
     let mesh;
 
     if (el.type === 'box') {
+      const material = getMaterial(el.material, size);
       mesh = new THREE.Mesh(new THREE.BoxGeometry(size[0], size[1], size[2]), material);
       mesh.position.set(el.position[0], el.position[1], el.position[2]);
       mesh.rotation.y = el.yaw || 0;
       scene.add(mesh);
       if (el.collider !== false) {
-        const hw = size[0] / 2, hd = size[2] / 2;
-        addCollider(el.position[0] - hw, el.position[0] + hw, el.position[2] - hd, el.position[2] + hd, el.id);
+        const hw = size[0] / 2, hd = size[2] / 2, hh = size[1] / 2;
+        addCollider(
+          el.position[0] - hw, el.position[0] + hw,
+          el.position[2] - hd, el.position[2] + hd,
+          el.position[1] - hh, el.position[1] + hh,
+          el.id
+        );
       }
     } else if (el.type === 'plane' || el.type === 'emissiveQuad') {
+      const material = getMaterial(el.material, size);
       mesh = new THREE.Mesh(new THREE.PlaneGeometry(size[0], size[1]), material);
       mesh.position.set(el.position[0], el.position[1], el.position[2]);
       if (el.orientation === 'horizontal') {
@@ -381,12 +394,50 @@ export function buildWorld(scene, world, reduceMotion) {
       }
       scene.add(mesh);
       if (el.collider === true) {
-        const hw = size[0] / 2, hd = size[1] / 2;
-        addCollider(el.position[0] - hw, el.position[0] + hw, el.position[2] - hd, el.position[2] + hd, el.id);
+        const hw = size[0] / 2, hd = size[1] / 2, hh = size[1] / 2;
+        addCollider(
+          el.position[0] - hw, el.position[0] + hw,
+          el.position[2] - hd, el.position[2] + hd,
+          el.position[1] - hh, el.position[1] + hh,
+          el.id
+        );
       }
       const matDef = geo.materials[el.material];
       if (matDef && matDef.kind === 'glow' && el.orientation === 'vertical') glowSprites.push(mesh);
       if (el.ground) groundMeshes.push(mesh);
+    } else if (el.type === 'water') {
+      // A water volume is data only: XZ bounds + a surface level + an optional floor
+      // level, tint and fog density. The controller (walk.js) owns swim-mode physics;
+      // this just renders a translucent surface (and a dim floor plane, if the volume
+      // is deeper than the surrounding ground) so the pit reads as water, not a void.
+      const b = el.bounds;
+      const w = b.maxX - b.minX, d = b.maxZ - b.minZ;
+      const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
+      const tint = el.tint || '#123241';
+      const surfaceMat = new THREE.MeshPhysicalMaterial({
+        color: tint, transparent: true, opacity: 0.72, roughness: 0.15, metalness: 0,
+        transmission: 0.35, side: THREE.DoubleSide, depthWrite: false
+      });
+      mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), surfaceMat);
+      mesh.position.set(cx, el.surfaceY, cz);
+      mesh.rotation.set(-Math.PI / 2, 0, 0);
+      scene.add(mesh);
+      if (el.floorY != null && el.floorY < el.surfaceY) {
+        const floorMat = new THREE.MeshStandardMaterial({ color: tint, roughness: 0.95, metalness: 0.02 });
+        const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), floorMat);
+        floorMesh.position.set(cx, el.floorY, cz);
+        floorMesh.rotation.set(-Math.PI / 2, 0, 0);
+        scene.add(floorMesh);
+        groundMeshes.push(floorMesh);
+      }
+      waterVolumes.push({
+        id: el.id,
+        minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: b.maxZ,
+        surfaceY: el.surfaceY,
+        floorY: el.floorY == null ? el.surfaceY - 1 : el.floorY,
+        tint,
+        fogDensity: el.fogDensity == null ? 0.08 : el.fogDensity
+      });
     } else {
       throw new Error(`Unknown geometry element type "${el.type}" (id ${el.id})`);
     }
@@ -440,5 +491,5 @@ export function buildWorld(scene, world, reduceMotion) {
     }
   }
 
-  return { colliders, bounds, update, elementsById };
+  return { colliders, bounds, update, elementsById, waterVolumes };
 }
