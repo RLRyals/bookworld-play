@@ -31,6 +31,7 @@
 import * as THREE from 'three';
 import { buildWorld } from './geometry.js';
 import { createPost } from './post.js';
+import { resolveLang, loadChromeStrings, applyWorldLocale, t } from './i18n.js';
 
 // three's loader cache is what makes preload pay off: a FileLoader/ImageLoader fetch
 // primed on approach is served from memory when GLTFLoader/TextureLoader asks for the
@@ -44,8 +45,31 @@ const postEnabled = params.get('post') !== '0';
 const showFps = params.get('fps') === '1';
 const preloadEnabled = params.get('preload') !== '0';
 const tierParam = params.get('tier');
+const lang = resolveLang('en');
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- localization (specs/2026-08-09-localization-language-packs.md) ----------
+// Static chrome text that exists before any world is loaded (help panel, skip link,
+// overlay buttons). Dynamic chrome (sr-only announcements, the quality toggle label,
+// per-world zone hints) is localized inline via t() at the point each is produced.
+function localizeStaticChrome() {
+  const setText = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = t(key); };
+  const setHtml = (id, key) => { const el = document.getElementById(id); if (el) el.innerHTML = t(key); };
+  setText('skip-link', 'skipToControls');
+  document.getElementById('bg')?.setAttribute('aria-label', t('canvasAriaLabel'));
+  document.getElementById('zone-list')?.setAttribute('aria-label', t('zoneListAriaLabel'));
+  setText('help-title', 'controlsTitle');
+  setHtml('help-wasd', 'controlsWasd');
+  setHtml('help-arrows', 'controlsArrows');
+  setHtml('help-jump', 'controlsJump');
+  setHtml('help-interact', 'controlsInteract');
+  setHtml('help-hide', 'controlsHidePanel');
+  setText('prose-title', 'passage');
+  setText('prose-close', 'close');
+  document.getElementById('cutscene-overlay')?.setAttribute('aria-label', t('cutscene'));
+  setText('cutscene-close', 'closeCutscene');
+}
 
 async function loadManifest(path) {
   const res = await fetch(path);
@@ -133,7 +157,7 @@ function setTier(tier, why) {
   perf.history.push({ tier, why, t: Math.round(performance.now()) });
   applyTierToSession();
   updateTierButton();
-  announceGlobal(`Graphics quality: ${tier}.`);
+  announceGlobal(t('quality.changed', { tier }));
 }
 
 // The watchdog only ever steps DOWN. Promotion mid-session is what makes a marginal
@@ -198,12 +222,14 @@ function notePerfFrame(frameMs) {
 const tierButton = document.getElementById('tier-toggle');
 
 function tierButtonLabel() {
-  return perf.mode === 'auto' ? `Quality: auto (${perf.tier})` : `Quality: ${perf.tier}`;
+  return perf.mode === 'auto' ? t('quality.autoTier', { tier: perf.tier }) : t('quality.tier', { tier: perf.tier });
 }
 function updateTierButton() {
   if (!tierButton) return;
   tierButton.textContent = tierButtonLabel();
-  tierButton.setAttribute('aria-label', `Graphics quality, currently ${perf.mode === 'auto' ? 'automatic, ' + perf.tier : perf.tier}. Activate to change.`);
+  tierButton.setAttribute('aria-label', perf.mode === 'auto'
+    ? t('quality.ariaAutomatic', { tier: perf.tier })
+    : t('quality.ariaManual', { tier: perf.tier }));
 }
 if (tierButton) {
   // auto -> high -> medium -> low -> auto
@@ -220,7 +246,7 @@ if (tierButton) {
       perf.lastChange = performance.now();
       perf.history.push({ tier: perf.tier, why: 'user: auto (re-probe)', t: Math.round(performance.now()) });
       updateTierButton();
-      announceGlobal('Graphics quality: automatic. Measuring.');
+      announceGlobal(t('quality.autoMeasuring'));
     } else {
       perf.mode = 'manual';
       if (next === perf.tier) {
@@ -236,7 +262,8 @@ if (tierButton) {
     // keyboard user is still tabbing and must not be thrown out of the control.
     if (ev && ev.detail > 0) { tierButton.blur(); if (canvas) canvas.focus(); }
   });
-  updateTierButton();
+  // Not called here: chrome strings aren't loaded yet at module-init time. boot()
+  // calls updateTierButton() once loadChromeStrings() resolves.
 }
 
 // ============================================================================
@@ -359,6 +386,7 @@ async function loadWorld(path, spawnId, why) {
   const tManifest0 = performance.now();
   if (!world) {
     world = await loadManifest(path);
+    await applyWorldLocale(world, manifestBase(path), lang);
     manifestCache.set(path, world);
   }
   const manifestMs = performance.now() - tManifest0;
@@ -384,7 +412,7 @@ async function travelTo(spec, spawnId, base) {
   const path = resolveWorldPath(spec, base);
   try {
     if (session) session.suspend();
-    announceGlobal('Travelling…');
+    announceGlobal(t('travelling'));
     await fadeTo(true);
     await loadWorld(path, spawnId, 'link');
     await fadeTo(false);
@@ -421,10 +449,10 @@ function init(world, base, spawnId, worldPath) {
   document.getElementById('scene-description').textContent = world.description || '';
   const zoneList = document.getElementById('zone-list');
   zoneList.innerHTML = '';
-  (world.triggers || []).forEach((t) => {
+  (world.triggers || []).forEach((trig) => {
     const li = document.createElement('li');
-    const how = t.mode === 'auto' ? 'happens on its own when you walk in' : 'press E when you are inside it';
-    li.textContent = `${t.label}: ${t.srHint || ''} (${how})`.replace(/\s+/g, ' ').trim();
+    const how = trig.mode === 'auto' ? t('zoneHintAuto') : t('zoneHintPrompted');
+    li.textContent = `${trig.label}: ${trig.srHint || ''} (${how})`.replace(/\s+/g, ' ').trim();
     zoneList.appendChild(li);
   });
   const status = statusEl;
@@ -436,7 +464,7 @@ function init(world, base, spawnId, worldPath) {
   let touchHelpLi = null;
   if (matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0) {
     touchHelpLi = document.createElement('li');
-    touchHelpLi.innerHTML = '<b>Touch</b>: drag the left half to walk &middot; drag the right half to look &middot; tap the glowing prompt to interact';
+    touchHelpLi.innerHTML = t('controlsTouch');
     helpList.appendChild(touchHelpLi);
   }
 
@@ -611,7 +639,7 @@ function init(world, base, spawnId, worldPath) {
   function respawn() {
     pos.x = spawnPos[0]; pos.z = spawnPos[2];
     feetY = 0; vy = 0; grounded = true; swimming = false; currentWater = null;
-    announce('You fell out of the world. Back at the start.');
+    announce(t('fellOutOfWorld'));
   }
 
   resolveHorizontal(pos, feetY);
@@ -794,7 +822,7 @@ function init(world, base, spawnId, worldPath) {
     }
     inputLocked = false;
     canvas.focus();
-    announce('Back where you left off.');
+    announce(t('backWhereLeftOff'));
   }
 
   function openProse(text) {
@@ -815,16 +843,16 @@ function init(world, base, spawnId, worldPath) {
 
   function playCutscene(cutsceneId) {
     const c = cutscenesById[cutsceneId];
-    if (!c) { announce('That cutscene is missing from the manifest.'); return; }
+    if (!c) { announce(t('cutsceneMissing')); return; }
     suspendWalk();
     cutsceneVideo.src = base + c.video;
     if (c.poster) cutsceneVideo.poster = base + c.poster;
     cutsceneOverlay.classList.remove('hidden');
-    cutsceneOverlay.setAttribute('aria-label', c.title ? `Cutscene: ${c.title}` : 'Cutscene');
+    cutsceneOverlay.setAttribute('aria-label', c.title ? t('cutsceneWithTitle', { title: c.title }) : t('cutscene'));
     try { cutsceneVideo.currentTime = 0; } catch (_) { /* not seekable yet */ }
     cutsceneVideo.play().catch(() => {});
     cutsceneClose.focus();
-    announce(`Cutscene playing: ${c.title || c.id}. Press Escape to return.`);
+    announce(t('cutscenePlaying', { title: c.title || c.id }));
   }
   function closeCutscene() {
     if (cutsceneOverlay.classList.contains('hidden')) return;
@@ -834,7 +862,7 @@ function init(world, base, spawnId, worldPath) {
   }
   cutsceneVideo.addEventListener('ended', closeCutscene, { signal });
   cutsceneVideo.addEventListener('error', () => {
-    announce('The cutscene video failed to load. Returning to the street.');
+    announce(t('cutsceneFailed'));
     closeCutscene();
   }, { signal });
   cutsceneClose.addEventListener('click', closeCutscene, { signal });
@@ -851,20 +879,20 @@ function init(world, base, spawnId, worldPath) {
   // "nothing ties alley-door to the door mesh") instead of, or in addition to, a bare
   // world coordinate. `anchor` + optional `offset` resolves to the element's own position;
   // a bare `position` stays legal for zones with no natural geometry (open street).
-  function resolveTriggerPosition(t) {
-    if (t.anchor) {
-      const el = built.elementsById[t.anchor];
-      if (!el) throw new Error(`Trigger "${t.id}" anchors to unknown geometry id "${t.anchor}"`);
-      const off = t.offset || [0, 0, 0];
+  function resolveTriggerPosition(trig) {
+    if (trig.anchor) {
+      const el = built.elementsById[trig.anchor];
+      if (!el) throw new Error(`Trigger "${trig.id}" anchors to unknown geometry id "${trig.anchor}"`);
+      const off = trig.offset || [0, 0, 0];
       return [el.position[0] + off[0], el.position[1] + off[1], el.position[2] + off[2]];
     }
-    return t.position || [0, 0, 0];
+    return trig.position || [0, 0, 0];
   }
 
   const promptEl = document.getElementById('prompt');
-  const zones = (world.triggers || []).map((t) => ({
-    def: t,
-    pos: resolveTriggerPosition(t),
+  const zones = (world.triggers || []).map((trig) => ({
+    def: trig,
+    pos: resolveTriggerPosition(trig),
     inside: false,
     armed: true,
     fired: false,
@@ -900,15 +928,15 @@ function init(world, base, spawnId, worldPath) {
   }
 
   function fire(z) {
-    const t = z.def.trigger || {};
+    const trig = z.def.trigger || {};
     z.fired = true;
     z.armed = false; // auto zones re-arm only when the player leaves (and not if `once`)
-    if (t.type === 'prose') openProse(t.text || '');
-    else if (t.type === 'cutscene') playCutscene(t.cutsceneId);
-    else if (t.type === 'link') {
-      if (!t.toWorld) { announce(`${z.def.label} does not say where it goes.`); return; }
-      travelTo(t.toWorld, t.spawn, base);
-    } else announce(`Nothing is wired to ${z.def.label}.`);
+    if (trig.type === 'prose') openProse(trig.text || '');
+    else if (trig.type === 'cutscene') playCutscene(trig.cutsceneId);
+    else if (trig.type === 'link') {
+      if (!trig.toWorld) { announce(t('linkMissingDestination', { label: z.def.label })); return; }
+      travelTo(trig.toWorld, trig.spawn, base);
+    } else announce(t('nothingWired', { label: z.def.label }));
   }
 
   // tap-to-activate: the prompt pill IS the touch equivalent of "press E" (css/walk.css
@@ -919,7 +947,7 @@ function init(world, base, spawnId, worldPath) {
   function interact() {
     if (!activeZone) return;
     if (activeZone.def.once && activeZone.fired) {
-      announce(`${activeZone.def.label}: nothing more here.`);
+      announce(t('nothingMoreHere', { label: activeZone.def.label }));
       return;
     }
     fire(activeZone);
@@ -946,20 +974,20 @@ function init(world, base, spawnId, worldPath) {
       if (z.inside && z.def.mode !== 'auto') prompted = z;
 
       // link-adjacent preload: warm the target pack while the player is still walking up
-      const t = z.def.trigger;
-      if (t && t.type === 'link' && t.toWorld && !z.preloadStarted) {
+      const trig = z.def.trigger;
+      if (trig && trig.type === 'link' && trig.toWorld && !z.preloadStarted) {
         const p = z.pos;
         const reach = (z.def.shape === 'box' ? Math.max(...(z.def.bounds || [2, 2, 2])) / 2 : (z.def.radius == null ? 2 : z.def.radius)) + PRELOAD_MARGIN;
         const dx = pos.x - p[0], dz = pos.z - p[2];
         if (dx * dx + dz * dz <= reach * reach) {
           z.preloadStarted = true;
-          preloadWorld(resolveWorldPath(t.toWorld, base));
+          preloadWorld(resolveWorldPath(trig.toWorld, base));
         }
       }
     }
     activeZone = prompted;
     if (prompted && !(prompted.def.once && prompted.fired)) {
-      promptEl.textContent = prompted.def.prompt || 'Press E';
+      promptEl.textContent = prompted.def.prompt || t('pressE');
       promptEl.classList.remove('hidden');
     } else {
       promptEl.classList.add('hidden');
@@ -1255,7 +1283,7 @@ function init(world, base, spawnId, worldPath) {
     post.setSize(innerWidth, innerHeight, tierNow.pixelRatio);
   }, { signal });
 
-  announce('Ready. ' + (world.description || ''));
+  announce(t('ready', { description: world.description || '' }));
 
   // ---------- teardown ----------
   // A world link is a full unload: the loop stops, every listener this world installed is
@@ -1290,4 +1318,14 @@ function init(world, base, spawnId, worldPath) {
   };
 }
 
-loadWorld(startWorldPath, startSpawnId, 'boot').catch((err) => showLoadError(err.message));
+async function boot() {
+  await loadChromeStrings(lang);
+  localizeStaticChrome();
+  updateTierButton();
+  try {
+    await loadWorld(startWorldPath, startSpawnId, 'boot');
+  } catch (err) {
+    showLoadError(err.message);
+  }
+}
+boot();

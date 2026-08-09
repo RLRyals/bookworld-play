@@ -1,5 +1,6 @@
 {
   "id": "world-a-graybox-street",
+  "defaultLang": "en",
   "title": "World A — Gray-box Street (placeholder)",
   "description": "A short city block at night, gray-box placeholder geometry. A wet two-lane street runs north to south between tall building masses. Neon signage glows on the facades. An alley mouth opens on the west side, halfway along the block, and dead-ends at a single lit doorway. Placeholder geometry only — no story canon.",
   "worldTexture": [

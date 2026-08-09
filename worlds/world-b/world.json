@@ -1,5 +1,6 @@
 {
   "id": "world-b-plaza",
+  "defaultLang": "en",
   "title": "World B — Gray-box Plaza (differently shaped, placeholder)",
   "description": "A small stone plaza at dusk, gray-box placeholder geometry. Not a reskin of the street: a colonnade lines both long sides, a dry fountain plinth sits at the centre, and an archway on the north wall opens onto a small dark interior chamber with a lit brazier. Placeholder geometry only — no story canon. Authored entirely from the same geometry vocabulary as world-a (box / plane / emissiveQuad) with zero engine code changes.",
   "worldTexture": [

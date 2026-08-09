@@ -1,0 +1,33 @@
+{
+  "_note": "Throwaway machine-translated placeholder proving the language-pack pipeline (BookWorld-zq9). Not a real author translation.",
+  "lang": "es",
+  "world": {
+    "title": "Mundo B — Plaza en bloques grises (forma distinta, provisional)",
+    "description": "Una pequeña plaza de piedra al anochecer, geometría provisional en bloques grises. Una columnata bordea ambos lados largos, el pedestal de una fuente seca ocupa el centro, y un arco en el muro norte se abre a una pequeña cámara oscura con un brasero encendido. Solo geometría provisional — sin canon narrativo."
+  },
+  "triggers": {
+    "plaza-entry": {
+      "label": "La Plaza",
+      "srHint": "Una plaza de piedra se abre por delante, con columnatas a ambos lados."
+    },
+    "fountain": {
+      "label": "La Fuente",
+      "prompt": "Presiona E para mirar la fuente",
+      "srHint": "El pedestal de una fuente de piedra seca en el centro de la plaza.",
+      "text": "No corre agua aquí desde hace mucho tiempo. La cuenca está seca, cubierta de polvo pálido, y algo —musgo, tal vez, o solo sombra— ha tomado el lado bajo del borde."
+    },
+    "brazier-chamber": {
+      "label": "La Cámara del Brasero",
+      "prompt": "Presiona E para acercarte al brasero",
+      "srHint": "A través del arco: una pequeña sala oscura con un único brasero encendido."
+    },
+    "street-door": {
+      "label": "La Puerta de la Calle",
+      "srHint": "La puerta en el muro sur, de vuelta a la calle."
+    }
+  },
+  "cutscenes": {
+    "plaza-arrival": { "title": "Llegada" },
+    "brazier-light": { "title": "El Brasero" }
+  }
+}
