@@ -349,7 +349,17 @@ export function resolveTexture(spec, opts, base, onError) {
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.anisotropy = 8;
   cache.set(key, tex);
+  shared.add(tex);
   return tex;
+}
+
+// Textures handed out by resolveTexture are SHARED and cached for the lifetime of the
+// page — two packs (or the same pack loaded twice across a world link) get the same
+// GPU upload. Whoever tears a world down therefore has to know not to dispose them:
+// js/geometry.js's dispose() disposes only the textures a single build owns.
+const shared = new Set();
+export function isSharedTexture(tex) {
+  return shared.has(tex);
 }
 
 // ---------- world-unit UV tiling ----------

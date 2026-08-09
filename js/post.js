@@ -157,7 +157,13 @@ export function createPost(renderer, scene, camera, atmosphere) {
     highlightAmount: pick(grade.highlight, 0.35),
     vignette: pick(grade.vignette, 1.10),
     grain: pick(grade.grain, 0.035),
-    enabled: true
+    enabled: true,
+    // performance-tier switches (specs/2026-08-08-world-links-and-perf.md). `bloom`
+    // false skips the bright-pass + four blur blits entirely — five fullscreen passes
+    // that a low-tier machine cannot afford — and zeroes the composite's bloom terms so
+    // the grade/tonemap still runs and the world does not change colour, only glow.
+    bloom: true,
+    samples: 4
   };
 
   const quadGeo = new THREE.BufferGeometry();
@@ -176,12 +182,15 @@ export function createPost(renderer, scene, camera, atmosphere) {
     depthBuffer: false
   };
 
-  let sceneRT = new THREE.WebGLRenderTarget(1, 1, {
-    type: THREE.HalfFloatType,
-    minFilter: THREE.LinearFilter,
-    magFilter: THREE.LinearFilter,
-    samples: 4
-  });
+  function makeSceneRT(samples) {
+    return new THREE.WebGLRenderTarget(1, 1, {
+      type: THREE.HalfFloatType,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      samples
+    });
+  }
+  let sceneRT = makeSceneRT(params.samples);
   let brightRT = new THREE.WebGLRenderTarget(1, 1, rtOpts);
   let blurRTa = new THREE.WebGLRenderTarget(1, 1, rtOpts);
   let downRT = new THREE.WebGLRenderTarget(1, 1, rtOpts);
@@ -221,6 +230,25 @@ export function createPost(renderer, scene, camera, atmosphere) {
     blurRTb.setSize(qw, qh);
   }
 
+  // MSAA sample count is baked into a render target at construction, so a tier change
+  // that alters it has to rebuild the scene target (and only that one — the bloom chain
+  // is never multisampled). Bloom is a pure runtime branch and costs nothing to flip.
+  function setQuality(q) {
+    if (q.bloom != null) params.bloom = !!q.bloom;
+    if (q.samples != null && q.samples !== params.samples) {
+      params.samples = q.samples;
+      sceneRT.dispose();
+      sceneRT = makeSceneRT(q.samples);
+      sceneRT.setSize(W, H);
+    }
+  }
+
+  function dispose() {
+    sceneRT.dispose(); brightRT.dispose(); blurRTa.dispose(); downRT.dispose(); blurRTb.dispose();
+    brightMat.dispose(); blurMat.dispose(); compMat.dispose();
+    quadGeo.dispose();
+  }
+
   function blit(material, target) {
     quad.material = material;
     renderer.setRenderTarget(target);
@@ -238,33 +266,38 @@ export function createPost(renderer, scene, camera, atmosphere) {
     renderer.clear();
     renderer.render(scene, camera);
 
-    brightMat.uniforms.tDiffuse.value = sceneRT.texture;
-    brightMat.uniforms.threshold.value = params.threshold;
-    brightMat.uniforms.knee.value = params.knee;
-    blit(brightMat, brightRT);
+    if (params.bloom) {
+      brightMat.uniforms.tDiffuse.value = sceneRT.texture;
+      brightMat.uniforms.threshold.value = params.threshold;
+      brightMat.uniforms.knee.value = params.knee;
+      blit(brightMat, brightRT);
 
-    const hw = Math.max(1, W >> 1), hh = Math.max(1, H >> 1);
-    blurMat.uniforms.tDiffuse.value = brightRT.texture;
-    blurMat.uniforms.direction.value.set(1 / hw, 0);
-    blit(blurMat, blurRTa);
-    blurMat.uniforms.tDiffuse.value = blurRTa.texture;
-    blurMat.uniforms.direction.value.set(0, 1 / hh);
-    blit(blurMat, brightRT); // brightRT now holds bloom level 1
+      const hw = Math.max(1, W >> 1), hh = Math.max(1, H >> 1);
+      blurMat.uniforms.tDiffuse.value = brightRT.texture;
+      blurMat.uniforms.direction.value.set(1 / hw, 0);
+      blit(blurMat, blurRTa);
+      blurMat.uniforms.tDiffuse.value = blurRTa.texture;
+      blurMat.uniforms.direction.value.set(0, 1 / hh);
+      blit(blurMat, brightRT); // brightRT now holds bloom level 1
 
-    const qw = Math.max(1, W >> 2), qh = Math.max(1, H >> 2);
-    blurMat.uniforms.tDiffuse.value = brightRT.texture;
-    blurMat.uniforms.direction.value.set(1.6 / qw, 0);
-    blit(blurMat, downRT);
-    blurMat.uniforms.tDiffuse.value = downRT.texture;
-    blurMat.uniforms.direction.value.set(0, 1.6 / qh);
-    blit(blurMat, blurRTb); // blurRTb now holds bloom level 2
+      const qw = Math.max(1, W >> 2), qh = Math.max(1, H >> 2);
+      blurMat.uniforms.tDiffuse.value = brightRT.texture;
+      blurMat.uniforms.direction.value.set(1.6 / qw, 0);
+      blit(blurMat, downRT);
+      blurMat.uniforms.tDiffuse.value = downRT.texture;
+      blurMat.uniforms.direction.value.set(0, 1.6 / qh);
+      blit(blurMat, blurRTb); // blurRTb now holds bloom level 2
+    }
 
     const u = compMat.uniforms;
     u.tBase.value = sceneRT.texture;
-    u.tBloom1.value = brightRT.texture;
-    u.tBloom2.value = blurRTb.texture;
-    u.bloom1.value = params.bloom1;
-    u.bloom2.value = params.bloom2;
+    // with bloom off the two bloom samplers still have to be bound to SOMETHING (an
+    // unbound sampler2D is undefined behaviour on some drivers), so they point at the
+    // scene target and are multiplied by a zero weight
+    u.tBloom1.value = params.bloom ? brightRT.texture : sceneRT.texture;
+    u.tBloom2.value = params.bloom ? blurRTb.texture : sceneRT.texture;
+    u.bloom1.value = params.bloom ? params.bloom1 : 0;
+    u.bloom2.value = params.bloom ? params.bloom2 : 0;
     u.exposure.value = params.exposure;
     u.contrast.value = params.contrast;
     u.saturation.value = params.saturation;
@@ -281,5 +314,5 @@ export function createPost(renderer, scene, camera, atmosphere) {
     renderer.render(quadScene, quadCam);
   }
 
-  return { params, setSize, render };
+  return { params, setSize, setQuality, render, dispose };
 }

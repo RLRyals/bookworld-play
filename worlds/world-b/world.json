@@ -13,6 +13,13 @@
     "yaw": 0.02,
     "pitch": -0.02
   },
+  "spawns": {
+    "from-world-a": {
+      "position": [-6, 0, 8.6],
+      "yaw": 0,
+      "pitch": -0.02
+    }
+  },
   "player": {
     "eyeHeight": 1.65,
     "walkSpeed": 2.8,
@@ -112,6 +119,18 @@
       "prompt": "Press E to approach the brazier",
       "srHint": "Through the archway: a small dark room with a single lit brazier.",
       "trigger": { "type": "cutscene", "cutsceneId": "brazier-light" }
+    },
+    {
+      "id": "street-door",
+      "label": "The Street Door",
+      "mode": "auto",
+      "once": false,
+      "shape": "radius",
+      "anchor": "return-door-panel",
+      "offset": [0, -0.95, -1.0],
+      "radius": 1.6,
+      "srHint": "The door in the south wall, back to the street.",
+      "trigger": { "type": "link", "toWorld": "worlds/world-a/world.json", "spawn": "from-world-b" }
     }
   ],
   "cutscenes": [
@@ -133,7 +152,11 @@
       "fountainBase": { "kind": "flat", "color": "#8d7856", "roughness": 0.86, "metalness": 0.04, "texture": "sandstone", "tileScale": 1.3, "textureOptions": { "rows": 4, "cols": 2 } },
       "fountainGlow": { "kind": "glow", "colorFrom": "primary", "opacity": 0.3 },
       "plazaLampPole": { "kind": "flat", "color": "#3a3128", "roughness": 0.65, "metalness": 0.45 },
-      "lampLens": { "kind": "tint", "tintFrom": "primary", "tintMix": 0.6 }
+      "lampLens": { "kind": "tint", "tintFrom": "primary", "tintMix": 0.6 },
+      "doorFrame": { "kind": "flat", "color": "#3a2c1c", "roughness": 0.72, "metalness": 0.18, "texture": "timber", "tileScale": 0.9, "textureOptions": { "planks": 2 } },
+      "doorPanel": { "kind": "flat", "color": "#20160e", "roughness": 0.6, "metalness": 0.28, "texture": "timber", "tileScale": 0.7, "textureOptions": { "planks": 3 } },
+      "doorHalo": { "kind": "glow", "colorFrom": "primary", "opacity": 0.34 },
+      "doorPool": { "kind": "glow", "colorFrom": "primary", "opacity": 0.26 }
     },
     "elements": [
       { "id": "plaza-floor", "type": "plane", "position": [0, 0, -2], "size": [28, 24], "orientation": "horizontal", "material": "stone", "ground": true },
@@ -145,6 +168,12 @@
       { "id": "interior-wall-left", "type": "box", "position": [-3.3, 3, -17], "size": [0.6, 6, 4], "material": "interiorWall" },
       { "id": "interior-wall-right", "type": "box", "position": [3.3, 3, -17], "size": [0.6, 6, 4], "material": "interiorWall" },
       { "id": "south-wall", "type": "box", "position": [0, 1.0, 9.8], "size": [28, 2.0, 0.6], "material": "southWall" },
+
+      { "id": "return-door-frame", "type": "box", "position": [-6, 1.05, 9.42], "size": [2.0, 2.1, 0.2], "material": "doorFrame", "collider": false },
+      { "id": "return-door-panel", "type": "box", "position": [-6, 0.95, 9.3], "size": [1.5, 1.9, 0.12], "material": "doorPanel", "collider": false },
+      { "id": "return-door-halo", "type": "emissiveQuad", "position": [-6, 1.15, 9.1], "size": [3.2, 3.2], "orientation": "vertical", "material": "doorHalo", "collider": false },
+      { "id": "return-door-pool", "type": "emissiveQuad", "position": [-6, 0.03, 8.4], "size": [3.6, 3.6], "orientation": "horizontal", "material": "doorPool", "collider": false },
+
 
       { "id": "brazier", "type": "box", "position": [0, 0.9, -17.8], "size": [0.6, 1.8, 0.6], "material": "brazierBody" },
       { "id": "brazier-glow", "type": "emissiveQuad", "position": [0, 1.85, -17.8], "size": [0.8, 0.8], "orientation": "horizontal", "material": "brazierGlow", "collider": false },

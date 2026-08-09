@@ -29,7 +29,7 @@
 //   * `props` — glTF models placed by the pack, with AABB collision
 import * as THREE from 'three';
 import { GLTFLoader } from './lib/GLTFLoader.js';
-import { resolveTexture, applyWorldUVs } from './textures.js';
+import { resolveTexture, applyWorldUVs, isSharedTexture } from './textures.js';
 
 // ---------- deterministic RNG so screenshots are reproducible across runs ----------
 function mulberry32(seed) {
@@ -427,6 +427,9 @@ export function buildWorld(scene, world, reduceMotion, options) {
   const opts = options || {};
   const base = opts.base || '';
   const warn = opts.warn || ((m) => console.warn('[bookworld] ' + m));
+  // performance tier settings (specs/2026-08-08-world-links-and-perf.md). Defaults are
+  // the full rig, so a caller that passes nothing gets exactly the pre-tier behaviour.
+  const quality = Object.assign({ reflections: true, cubeSize: 128, fog: 'exp2' }, opts.quality || {});
   const geo = world.geometry || { materials: {}, elements: [], lights: [] };
   const palette = {
     primary: new THREE.Color(world.palette && world.palette.primary || '#2fe6a4'),
@@ -435,7 +438,36 @@ export function buildWorld(scene, world, reduceMotion, options) {
   const rand = mulberry32(geo.seed == null ? 20260806 : geo.seed);
 
   const atmosphere = resolveAtmosphere(world);
-  scene.fog = new THREE.FogExp2(atmosphere.fog.color.getHex(), atmosphere.fog.density);
+
+  // ----- fog, tier-switchable -----
+  // The pack always states exponential fog; the LOW tier swaps the same colour/visibility
+  // onto three.js's linear `Fog` ("simple fog" in the spec), which is one fewer exp() per
+  // fragment. `setFog` is what walk.js drives for the underwater tint, so it has to be
+  // cheap (mutate in place) and mode-agnostic.
+  const fogState = { color: atmosphere.fog.color.clone(), density: atmosphere.fog.density };
+  let fogMode = quality.fog === 'linear' ? 'linear' : 'exp2';
+  function linearFar(density) { return Math.max(8, 3 / Math.max(density, 1e-4)); }
+  function buildFog() {
+    scene.fog = fogMode === 'linear'
+      ? new THREE.Fog(fogState.color.getHex(), 1, linearFar(fogState.density))
+      : new THREE.FogExp2(fogState.color.getHex(), fogState.density);
+  }
+  function setFog(color, density) {
+    fogState.color.set(color);
+    fogState.density = density;
+    if (!scene.fog) return;
+    scene.fog.color.set(color);
+    if (scene.fog.isFogExp2) scene.fog.density = density;
+    else scene.fog.far = linearFar(density);
+  }
+  function setFogMode(mode) {
+    const next = mode === 'linear' ? 'linear' : 'exp2';
+    if (next === fogMode) return;
+    fogMode = next;
+    buildFog();
+  }
+  buildFog();
+
   buildSky(scene, world, atmosphere, base, warn);
 
   const colliders = [];
@@ -615,6 +647,9 @@ export function buildWorld(scene, world, reduceMotion, options) {
       loader.load(
         base + def.src,
         (gltf) => {
+          // a link can tear this world down while its props are still in flight; the
+          // late callback must not resurrect geometry into a disposed scene
+          if (disposed) { if (--propsPending === 0) resolve(props); return; }
           const root = gltf.scene;
           const scale = def.scale == null ? 1 : def.scale;
           root.scale.setScalar(scale);
@@ -657,22 +692,52 @@ export function buildWorld(scene, world, reduceMotion, options) {
   });
 
   // ----- reflection env for reflective materials (one capture, at init) -----
+  // Tier-aware: HIGH captures at 128, MEDIUM at 64 ("cheaper reflections" — a quarter of
+  // the texels through the same six render passes), LOW captures nothing at all and the
+  // reflective materials fall back to their own colour/roughness. The toggle can turn
+  // them back on mid-session, which is why the capture is lazy rather than done here.
   const capturePos = (geo.envCapture && geo.envCapture.position) || [0, 2, 0];
-  const cubeRT = new THREE.WebGLCubeRenderTarget(128, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
-  const cubeCam = new THREE.CubeCamera(0.4, 90, cubeRT);
-  cubeCam.position.set(capturePos[0], capturePos[1], capturePos[2]);
-  scene.add(cubeCam);
-  for (const r of reflectiveMaterials) {
-    r.material.envMap = cubeRT.texture;
-    r.material.envMapIntensity = r.envMapIntensity;
-    r.material.needsUpdate = true;
+  let cubeRT = null;
+  let cubeCam = null;
+  let capturedEnv = false;
+  let reflections = quality.reflections !== false && reflectiveMaterials.length > 0;
+  let cubeSize = quality.cubeSize || 128;
+
+  function attachEnv() {
+    if (!cubeRT) {
+      cubeRT = new THREE.WebGLCubeRenderTarget(cubeSize, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+      cubeCam = new THREE.CubeCamera(0.4, 90, cubeRT);
+      cubeCam.position.set(capturePos[0], capturePos[1], capturePos[2]);
+      scene.add(cubeCam);
+      capturedEnv = false;
+    }
+    for (const r of reflectiveMaterials) {
+      r.material.envMap = cubeRT.texture;
+      r.material.envMapIntensity = r.envMapIntensity;
+      r.material.needsUpdate = true;
+    }
+  }
+  function detachEnv() {
+    for (const r of reflectiveMaterials) {
+      r.material.envMap = null;
+      r.material.needsUpdate = true;
+    }
+  }
+  if (reflections) attachEnv();
+
+  function setReflections(on) {
+    const want = !!on && reflectiveMaterials.length > 0;
+    if (want === reflections) return;
+    reflections = want;
+    if (want) attachEnv(); else detachEnv();
   }
 
   const bounds = world.bounds || { minX: -50, maxX: 50, minZ: -50, maxZ: 50 };
 
-  let capturedEnv = false;
+  let disposed = false;
   function update(t, camera, renderer) {
-    if (!capturedEnv && renderer) {
+    if (disposed) return;
+    if (reflections && !capturedEnv && renderer) {
       for (const m of groundMeshes) m.visible = false;
       cubeCam.update(renderer, scene);
       for (const m of groundMeshes) m.visible = true;
@@ -691,9 +756,46 @@ export function buildWorld(scene, world, reduceMotion, options) {
     }
   }
 
+  // ----- teardown (world links: one scene = one load, so leaving frees it) -----
+  // Only what THIS build owns is released. Textures handed out by textures.js are shared
+  // page-wide and cached on purpose (walking back through a door must not re-upload the
+  // whole pack), so `isSharedTexture` guards them; canvas textures generated inside this
+  // module — facade, neon, shopfront, glow, streak, sky — belong to the build and go.
+  function disposeTexture(tex) {
+    if (tex && tex.isTexture && !isSharedTexture(tex)) tex.dispose();
+  }
+  function disposeMaterial(mat) {
+    if (!mat) return;
+    if (Array.isArray(mat)) { mat.forEach(disposeMaterial); return; }
+    for (const key of ['map', 'emissiveMap', 'alphaMap', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'lightMap', 'bumpMap', 'specularMap']) {
+      disposeTexture(mat[key]);
+    }
+    mat.dispose();
+  }
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    scene.traverse((obj) => {
+      if (obj.isMesh || obj.isPoints || obj.isLine) {
+        if (obj.geometry) obj.geometry.dispose();
+        disposeMaterial(obj.material);
+      }
+    });
+    while (scene.children.length) scene.remove(scene.children[0]);
+    if (cubeRT) { cubeRT.dispose(); cubeRT = null; cubeCam = null; }
+    disposeTexture(scene.background);
+    scene.background = null;
+    scene.environment = null;
+    scene.fog = null;
+  }
+
   return {
     colliders, bounds, update, elementsById, waterVolumes,
     atmosphere, props, propsReady,
+    setFog, setFogMode, setReflections, dispose,
+    get reflectionsOn() { return reflections; },
+    get fogMode() { return fogMode; },
+    get disposed() { return disposed; },
     get propsPending() { return propsPending; }
   };
 }

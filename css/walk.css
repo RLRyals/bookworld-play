@@ -140,6 +140,41 @@ html, body {
 }
 .fps.hidden { display: none; }
 
+/* graphics-tier toggle — small, out of the way, and a real focusable button */
+.tier-toggle {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 20;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: #cdf6e6;
+  background: rgba(4, 10, 12, 0.72);
+  border: 1px solid rgba(47, 230, 164, 0.4);
+  border-radius: 999px;
+  padding: 0.45em 0.95em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.tier-toggle:hover { border-color: rgba(47, 230, 164, 0.8); }
+.tier-toggle:focus-visible {
+  outline: 2px solid #2fe6a4;
+  outline-offset: 2px;
+}
+
+/* world-link curtain */
+.fade {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #02070a;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms linear;
+}
+.fade.on { opacity: 1; }
+
 .overlay {
   position: fixed;
   inset: 0;

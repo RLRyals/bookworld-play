@@ -32,6 +32,14 @@
 
   <div id="fps-readout" class="fps hidden" aria-hidden="true"></div>
 
+  <!-- graphics tier: a real button so it is in the tab order and screen-reader operable.
+       Cycles auto -> high -> medium -> low; ?tier= locks the same thing from the URL. -->
+  <button id="tier-toggle" type="button" class="tier-toggle">Quality: auto</button>
+
+  <!-- world-link transition curtain; the walk engine sets its duration to 0 under
+       prefers-reduced-motion so travel is a cut, not a fade -->
+  <div id="fade" class="fade" aria-hidden="true"></div>
+
   <div id="prose-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="prose-title">
     <div class="overlay-panel">
       <p id="prose-title" class="sr-only">Passage</p>
@@ -54,6 +62,6 @@
   <script type="importmap">
   { "imports": { "three": "./js/three.module.js" } }
   </script>
-  <script type="module" src="js/walk.js?v=75ba124"></script>
+  <script type="module" src="js/walk.js?v=42817a3"></script>
 </body>
 </html>
