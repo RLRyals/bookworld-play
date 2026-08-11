@@ -1095,7 +1095,7 @@ function init(world, base, spawnId, worldPath) {
   // on. Every mount (and rider companion) gets a headlight rig: a forward spot that is
   // the riding light, plus a soft under-glow that keeps the parked machine findable.
   // Colors are pack data (headlightColor / underglow, defaulting to the palette accent).
-  function addVehicleLights(entry, def) {
+  function addVehicleLights(entry, def, withCockpit) {
     // r155+ physical units: a spotlight is candela — hundreds light nothing at street
     // range (the same two-orders-of-magnitude trap the first lighting pass hit)
     const headColor = new THREE.Color(def.headlightColor || '#dff2ff');
@@ -1103,12 +1103,16 @@ function init(world, base, spawnId, worldPath) {
     head.visible = false;
     head.target = new THREE.Object3D();
     scene.add(head, head.target);
+    // locator strength only: hotter underglow pushes the road over the bloom threshold,
+    // and threshold + film grain renders as ragged white "continents" (Rebecca's
+    // blobs-on-squares screenshot — the square is the road plane's own seam)
     const glowColor = new THREE.Color(def.underglow || (world.palette && world.palette.accent) || '#35d0ff').getHex();
-    const glow = new THREE.PointLight(glowColor, 36, 5.5, 2.0);
+    const glow = new THREE.PointLight(glowColor, 14, 5.5, 2.0);
     scene.add(glow);
-    // small cockpit fill so the machine itself reads from the saddle at night
-    const cockpit = new THREE.PointLight(headColor.getHex(), 30, 3.2, 2.0);
-    scene.add(cockpit);
+    // cockpit fill is FIRST-PERSON furniture (the dash you sit behind); on a companion
+    // it sits centimetres from the rider silhouette and nukes it white
+    const cockpit = withCockpit ? new THREE.PointLight(headColor.getHex(), 30, 3.2, 2.0) : null;
+    if (cockpit) scene.add(cockpit);
     // the wet-road trick from the packs: a highly metallic road answers emissive quads,
     // not diffuse light, so the headlight carries its own moving pool. The quad wears a
     // radial-gradient texture — a plain plane at any opacity reads as a bright square
@@ -1169,7 +1173,7 @@ function init(world, base, spawnId, worldPath) {
       m.object = root;
       m.baseLift = baseLift;
       m.ready = true;
-      if (m.def.headlight !== false) addVehicleLights(m, m.def);
+      if (m.def.headlight !== false) addVehicleLights(m, m.def, true);
       placeMountObject(m);
       parkCollider(m);
     });
@@ -1321,7 +1325,7 @@ function init(world, base, spawnId, worldPath) {
       c.object = root;
       c.baseLift = baseLift;
       c.ready = true;
-      if (c.def.headlight !== false) addVehicleLights(c, c.def);
+      if (c.def.headlight !== false) addVehicleLights(c, c.def, false);
       root.position.set(c.x, supportHeight(c.x, c.z, 1) + baseLift, c.z);
       root.rotation.y = -c.yaw + (c.def.modelYaw || 0);
       placeVehicleLights(c, c.x, c.z, c.yaw, supportHeight(c.x, c.z, 1), true);
@@ -1337,7 +1341,14 @@ function init(world, base, spawnId, worldPath) {
       const dx = wp[0] - c.x, dz = wp[1] - c.z;
       const d = Math.hypot(dx, dz);
       if (d < 1.5) {
-        if (c.wpIndex + 1 >= route.length && c.def.loop === false) { c.speed = 0; continue; }
+        if (c.wpIndex + 1 >= route.length && c.def.loop === false) {
+          c.speed = 0;
+          if (c.lightsOn !== false) {
+            c.lightsOn = false;
+            placeVehicleLights(c, c.x, c.z, c.yaw, supportHeight(c.x, c.z, 1), false);
+          }
+          continue;
+        }
         c.wpIndex = (c.wpIndex + 1) % route.length;
         continue;
       }
@@ -1346,7 +1357,15 @@ function init(world, base, spawnId, worldPath) {
       const maxV = c.def.speed == null ? 9 : c.def.speed;
       const want = toPlayer > lead ? 0 : maxV;
       c.speed += (want - c.speed) * (1 - Math.exp(-dt / 0.7));
-      if (c.speed > 0.01) {
+      // a stopped companion parks its riding lights (headlight/pool off, underglow
+      // stays as the locator) — a frozen ON-beam pointing wherever it last faced was
+      // the brightest half of the blobs-on-squares report
+      const moving = c.speed > 0.01;
+      if (!moving && c.lightsOn !== false) {
+        c.lightsOn = false;
+        placeVehicleLights(c, c.x, c.z, c.yaw, supportHeight(c.x, c.z, 1), false);
+      }
+      if (moving) {
         const targetYaw = Math.atan2(dx, -dz);
         let dyaw = targetYaw - c.yaw;
         while (dyaw > Math.PI) dyaw -= 2 * Math.PI;
@@ -1359,6 +1378,7 @@ function init(world, base, spawnId, worldPath) {
           c.object.position.set(c.x, feet + c.baseLift, c.z);
           c.object.rotation.set(0, -c.yaw + (c.def.modelYaw || 0), reduce ? 0 : -dyaw * 0.35);
           placeVehicleLights(c, c.x, c.z, c.yaw, feet, true);
+          c.lightsOn = true;
         }
       }
     }
