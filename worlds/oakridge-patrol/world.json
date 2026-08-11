@@ -1,7 +1,7 @@
 {
   "id": "oakridge-patrol",
   "title": "Oakridge — Night Patrol (chapter-1 demo)",
-  "description": "A night ring road around a dark city block, wet asphalt under green and teal neon. You start on the south stretch beside your parked motorcycle; your partner waits on his bike ahead. Ride the marked beacons around the zone to complete the patrol.",
+  "description": "A night ring road around a dark city block, wet asphalt under green and teal neon, with a narrow street — the Cut — running through the middle of the block. You start on the south stretch beside your parked motorcycle; your partner waits on his bike ahead. Ride the marked beacons around the zone; when the call comes in, the last beacon is the chapel.",
   "worldTexture": [
     "night, wet streets, green neon with a teal accent — cover mood, not photoreal",
     "a patrol ring around one dark super-block; the tower over the block is skyline only",
@@ -123,41 +123,57 @@
       "targetLength": 2.2,
       "speed": 10,
       "leadDistance": 30,
-      "loop": true,
+      "loop": false,
       "rider": true,
       "modelYaw": 0,
       "route": [
         [
           -54,
-          28
+          24
         ],
         [
           -54,
           -28
         ],
         [
-          -48,
+          -49,
           -34
         ],
         [
-          48,
+          -4,
           -34
         ],
         [
-          54,
+          0,
           -28
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          5,
+          34
+        ],
+        [
+          49,
+          34
         ],
         [
           54,
           28
         ],
         [
-          48,
-          34
+          54,
+          -14
         ],
         [
-          -48,
-          34
+          51,
+          -30
+        ],
+        [
+          47,
+          -36
         ]
       ]
     }
@@ -166,7 +182,7 @@
     "id": "patrol-ch1",
     "label": "Patrol — the Zone",
     "beaconColor": "#35d0ff",
-    "completeHud": "Patrol — the Zone · complete",
+    "completeHud": "Patrol — the Zone · responded",
     "checkpoints": [
       {
         "id": "cp-sw",
@@ -193,16 +209,28 @@
         "text": "Mal, to herself: \"West side quiet. Reservoir fog rolling in over the rooftops again.\""
       },
       {
-        "id": "cp-n",
+        "id": "cp-cut",
         "position": [
           0,
           0,
-          -34
+          -24
         ],
-        "radius": 7,
-        "label": "North stretch",
-        "srHint": "Third beacon, midway along the north road under the OAKRIDGE sign.",
-        "text": "Jax: \"Chapel light's still burning. They sweep tonight — if a call comes in, we ride it first.\""
+        "radius": 6,
+        "label": "The Cut — south into the block",
+        "srHint": "Third beacon, at the mouth of the narrow street through the middle of the block.",
+        "text": "Jax: \"Down the Cut. Middle of the block sees nothing but us and the relay light.\""
+      },
+      {
+        "id": "cp-cut-s",
+        "position": [
+          0,
+          0,
+          24
+        ],
+        "radius": 6,
+        "label": "South mouth — east onto the stretch",
+        "srHint": "Fourth beacon, where the Cut opens back onto the south road.",
+        "text": "Mal: \"Out of the canyon. Neon again. I could get used to this beat.\""
       },
       {
         "id": "cp-se",
@@ -213,25 +241,38 @@
         ],
         "radius": 7,
         "label": "Southeast corner",
-        "srHint": "Fourth beacon, bottom of the east stretch.",
-        "text": "Dispatch, static-thin: \"All units, zone four. Nothing open. Hold your loops.\""
+        "srHint": "Fifth beacon, bottom of the east stretch.",
+        "text": "Dispatch, static-thin: \"All units, zone four. Chapel relay is flickering. Probably weather. Hold your loops.\""
       },
       {
-        "id": "cp-home",
+        "id": "cp-call",
         "position": [
+          54,
           0,
-          0,
-          34
+          -18
         ],
         "radius": 7,
-        "label": "South stretch — close the loop",
-        "srHint": "Final beacon, back on the south road where the patrol began.",
-        "text": "Jax: \"That's the loop. Told you she rides better than she files reports.\""
+        "label": "East stretch — the call",
+        "srHint": "Sixth beacon, high on the east stretch — where the radio changes everything.",
+        "text": "Dispatch, no static now: \"Signal drop at the chapel relay. Body on the steps. Unit twelve — it's yours. Ride.\""
+      },
+      {
+        "id": "cp-chapel",
+        "position": [
+          46,
+          0,
+          -34
+        ],
+        "radius": 6,
+        "label": "Oakridge Chapel — RESPOND",
+        "beaconColor": "#2fe6a4",
+        "beaconScale": 1.6,
+        "srHint": "The destination: the chapel forecourt on the north rim, under the CHAPEL sign."
       }
     ],
     "onComplete": {
       "type": "prose",
-      "text": "The loop closes where it began, engine ticking heat into the wet air. The zone is quiet — logged, stamped, patrolled. Somewhere north the chapel light burns on, and the fog keeps its own counsel. First patrol done. The city has seen you now."
+      "text": "The chapel steps. The relay above the door is dark — first time since it was bolted there — and at the foot of the steps, half in the gutter's green reflection, someone who is not getting up. Jax kills his engine behind you. Somewhere in the Church's far towers, a clock you cannot hear has already started counting down what is left of this body's mind. First patrol. First body. The zone was never quiet."
     }
   },
   "bounds": {
@@ -340,92 +381,132 @@
       "facade-2": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.17
+        "litChance": 0.19
       },
       "facade-3": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.15000000000000002
+        "litChance": 0.17
       },
       "facade-4": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.13
+        "litChance": 0.17
       },
       "facade-5": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.11
+        "litChance": 0.15000000000000002
       },
       "facade-6": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.22
+        "litChance": 0.13
       },
       "facade-7": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.2
+        "litChance": 0.11
       },
       "facade-8": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.18
+        "litChance": 0.11
       },
       "facade-9": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.16
+        "litChance": 0.22
       },
       "facade-10": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.12000000000000001
+        "litChance": 0.22
       },
       "facade-11": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.1
+        "litChance": 0.2
       },
       "facade-12": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.21000000000000002
+        "litChance": 0.18
       },
       "facade-13": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.19
+        "litChance": 0.16
       },
       "facade-14": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.17
+        "litChance": 0.14
       },
       "facade-15": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.15000000000000002
+        "litChance": 0.12000000000000001
       },
       "facade-16": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.13
+        "litChance": 0.1
       },
       "facade-17": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.11
+        "litChance": 0.21000000000000002
       },
       "facade-18": {
         "kind": "facade",
         "base": "#171b1f",
-        "litChance": 0.22
+        "litChance": 0.19
       },
       "facade-19": {
         "kind": "facade",
         "base": "#171b1f",
+        "litChance": 0.17
+      },
+      "facade-20": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.15000000000000002
+      },
+      "facade-21": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.13
+      },
+      "facade-22": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.11
+      },
+      "facade-23": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.22
+      },
+      "facade-24": {
+        "kind": "facade",
+        "base": "#171b1f",
         "litChance": 0.2
+      },
+      "facade-25": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.18
+      },
+      "facade-26": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.16
+      },
+      "facade-27": {
+        "kind": "facade",
+        "base": "#171b1f",
+        "litChance": 0.14
       },
       "lampPool": {
         "kind": "glow",
@@ -494,6 +575,22 @@
       "neon-nite-streak": {
         "kind": "streak",
         "colorFrom": "accent",
+        "opacity": 0.3
+      },
+      "neon-relay-sign": {
+        "kind": "neonSign",
+        "text": "RELAY",
+        "colorFrom": "primary",
+        "vertical": false
+      },
+      "neon-relay-halo": {
+        "kind": "glow",
+        "colorFrom": "primary",
+        "opacity": 0.13
+      },
+      "neon-relay-streak": {
+        "kind": "streak",
+        "colorFrom": "primary",
         "opacity": 0.3
       },
       "neon-chapel-sign": {
@@ -583,6 +680,22 @@
         "type": "plane",
         "position": [
           54,
+          0,
+          0
+        ],
+        "size": [
+          10,
+          58
+        ],
+        "orientation": "horizontal",
+        "material": "road",
+        "ground": true
+      },
+      {
+        "id": "road-cut",
+        "type": "plane",
+        "position": [
+          0,
           0,
           0
         ],
@@ -1027,6 +1140,22 @@
         "collider": false
       },
       {
+        "id": "dash-cut-12",
+        "type": "plane",
+        "position": [
+          0,
+          0.015,
+          -24
+        ],
+        "size": [
+          0.4,
+          2.2
+        ],
+        "orientation": "horizontal",
+        "material": "dash",
+        "collider": false
+      },
+      {
         "id": "dash-w-13",
         "type": "plane",
         "position": [
@@ -1047,6 +1176,22 @@
         "type": "plane",
         "position": [
           54,
+          0.015,
+          -15
+        ],
+        "size": [
+          0.4,
+          2.2
+        ],
+        "orientation": "horizontal",
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-cut-13",
+        "type": "plane",
+        "position": [
+          0,
           0.015,
           -15
         ],
@@ -1091,6 +1236,22 @@
         "collider": false
       },
       {
+        "id": "dash-cut-14",
+        "type": "plane",
+        "position": [
+          0,
+          0.015,
+          -6
+        ],
+        "size": [
+          0.4,
+          2.2
+        ],
+        "orientation": "horizontal",
+        "material": "dash",
+        "collider": false
+      },
+      {
         "id": "dash-w-15",
         "type": "plane",
         "position": [
@@ -1111,6 +1272,22 @@
         "type": "plane",
         "position": [
           54,
+          0.015,
+          3
+        ],
+        "size": [
+          0.4,
+          2.2
+        ],
+        "orientation": "horizontal",
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-cut-15",
+        "type": "plane",
+        "position": [
+          0,
           0.015,
           3
         ],
@@ -1155,6 +1332,22 @@
         "collider": false
       },
       {
+        "id": "dash-cut-16",
+        "type": "plane",
+        "position": [
+          0,
+          0.015,
+          12
+        ],
+        "size": [
+          0.4,
+          2.2
+        ],
+        "orientation": "horizontal",
+        "material": "dash",
+        "collider": false
+      },
+      {
         "id": "dash-w-17",
         "type": "plane",
         "position": [
@@ -1175,6 +1368,22 @@
         "type": "plane",
         "position": [
           54,
+          0.015,
+          21
+        ],
+        "size": [
+          0.4,
+          2.2
+        ],
+        "orientation": "horizontal",
+        "material": "dash",
+        "collider": false
+      },
+      {
+        "id": "dash-cut-17",
+        "type": "plane",
+        "position": [
+          0,
           0.015,
           21
         ],
@@ -1318,12 +1527,12 @@
         "id": "in-n-0",
         "type": "box",
         "position": [
-          -30,
+          -34,
           7.5,
           -19
         ],
         "size": [
-          24,
+          20,
           15,
           10
         ],
@@ -1333,12 +1542,12 @@
         "id": "in-n-0-facade-n",
         "type": "plane",
         "position": [
-          -30,
+          -34,
           7.5,
           -24.06
         ],
         "size": [
-          24,
+          20,
           15
         ],
         "yaw": 3.141592653589793,
@@ -1350,12 +1559,12 @@
         "id": "in-n-1",
         "type": "box",
         "position": [
-          -4,
+          -14,
           11.5,
           -19
         ],
         "size": [
-          20,
+          14,
           23,
           10
         ],
@@ -1365,12 +1574,12 @@
         "id": "in-n-1-facade-n",
         "type": "plane",
         "position": [
-          -4,
+          -14,
           11.5,
           -24.06
         ],
         "size": [
-          20,
+          14,
           23
         ],
         "yaw": 3.141592653589793,
@@ -1379,15 +1588,32 @@
         "collider": false
       },
       {
+        "id": "in-n-1-facade-e",
+        "type": "plane",
+        "position": [
+          -6.94,
+          11.5,
+          -19
+        ],
+        "size": [
+          10,
+          23
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-2",
+        "collider": false
+      },
+      {
         "id": "in-n-2",
         "type": "box",
         "position": [
-          24,
+          15,
           6,
           -19
         ],
         "size": [
-          28,
+          16,
           12,
           10
         ],
@@ -1397,113 +1623,228 @@
         "id": "in-n-2-facade-n",
         "type": "plane",
         "position": [
-          24,
+          15,
           6,
           -24.06
         ],
         "size": [
-          28,
+          16,
           12
         ],
         "yaw": 3.141592653589793,
         "orientation": "vertical",
-        "material": "facade-2",
+        "material": "facade-3",
+        "collider": false
+      },
+      {
+        "id": "in-n-2-facade-w",
+        "type": "plane",
+        "position": [
+          6.94,
+          6,
+          -19
+        ],
+        "size": [
+          10,
+          12
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-4",
+        "collider": false
+      },
+      {
+        "id": "in-n-3",
+        "type": "box",
+        "position": [
+          36,
+          9,
+          -19
+        ],
+        "size": [
+          16,
+          18,
+          10
+        ],
+        "material": "mass-0"
+      },
+      {
+        "id": "in-n-3-facade-n",
+        "type": "plane",
+        "position": [
+          36,
+          9,
+          -24.06
+        ],
+        "size": [
+          16,
+          18
+        ],
+        "yaw": 3.141592653589793,
+        "orientation": "vertical",
+        "material": "facade-5",
         "collider": false
       },
       {
         "id": "in-s-0",
         "type": "box",
         "position": [
-          -28,
+          -32,
           5.5,
           19
         ],
         "size": [
-          28,
+          22,
           11,
           10
         ],
-        "material": "mass-0"
+        "material": "mass-1"
       },
       {
         "id": "in-s-0-facade-s",
         "type": "plane",
         "position": [
-          -28,
+          -32,
           5.5,
           24.06
         ],
         "size": [
-          28,
+          22,
           11
         ],
         "yaw": 0,
         "orientation": "vertical",
-        "material": "facade-3",
+        "material": "facade-6",
         "collider": false
       },
       {
         "id": "in-s-1",
         "type": "box",
         "position": [
-          2,
+          -13,
           9.5,
           19
         ],
         "size": [
-          24,
+          12,
           19,
           10
         ],
-        "material": "mass-1"
+        "material": "mass-2"
       },
       {
         "id": "in-s-1-facade-s",
         "type": "plane",
         "position": [
-          2,
+          -13,
           9.5,
           24.06
         ],
         "size": [
-          24,
+          12,
           19
         ],
         "yaw": 0,
         "orientation": "vertical",
-        "material": "facade-4",
+        "material": "facade-7",
+        "collider": false
+      },
+      {
+        "id": "in-s-1-facade-e",
+        "type": "plane",
+        "position": [
+          -6.94,
+          9.5,
+          19
+        ],
+        "size": [
+          10,
+          19
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-8",
         "collider": false
       },
       {
         "id": "in-s-2",
         "type": "box",
         "position": [
-          28,
+          16,
           7,
           19
         ],
         "size": [
-          20,
+          14,
           14,
           10
         ],
-        "material": "mass-2"
+        "material": "mass-0"
       },
       {
         "id": "in-s-2-facade-s",
         "type": "plane",
         "position": [
-          28,
+          16,
           7,
           24.06
         ],
         "size": [
-          20,
+          14,
           14
         ],
         "yaw": 0,
         "orientation": "vertical",
-        "material": "facade-5",
+        "material": "facade-9",
+        "collider": false
+      },
+      {
+        "id": "in-s-2-facade-w",
+        "type": "plane",
+        "position": [
+          8.94,
+          7,
+          19
+        ],
+        "size": [
+          10,
+          14
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-10",
+        "collider": false
+      },
+      {
+        "id": "in-s-3",
+        "type": "box",
+        "position": [
+          36,
+          8,
+          19
+        ],
+        "size": [
+          16,
+          16,
+          10
+        ],
+        "material": "mass-1"
+      },
+      {
+        "id": "in-s-3-facade-s",
+        "type": "plane",
+        "position": [
+          36,
+          8,
+          24.06
+        ],
+        "size": [
+          16,
+          16
+        ],
+        "yaw": 0,
+        "orientation": "vertical",
+        "material": "facade-11",
         "collider": false
       },
       {
@@ -1519,7 +1860,7 @@
           17,
           14
         ],
-        "material": "mass-0"
+        "material": "mass-2"
       },
       {
         "id": "in-w-0-facade-w",
@@ -1535,7 +1876,7 @@
         ],
         "yaw": -1.5707963267948966,
         "orientation": "vertical",
-        "material": "facade-6",
+        "material": "facade-12",
         "collider": false
       },
       {
@@ -1551,7 +1892,7 @@
           10,
           12
         ],
-        "material": "mass-1"
+        "material": "mass-0"
       },
       {
         "id": "in-w-1-facade-w",
@@ -1567,7 +1908,7 @@
         ],
         "yaw": -1.5707963267948966,
         "orientation": "vertical",
-        "material": "facade-7",
+        "material": "facade-13",
         "collider": false
       },
       {
@@ -1583,7 +1924,7 @@
           21,
           14
         ],
-        "material": "mass-2"
+        "material": "mass-1"
       },
       {
         "id": "in-e-0-facade-e",
@@ -1599,7 +1940,7 @@
         ],
         "yaw": 1.5707963267948966,
         "orientation": "vertical",
-        "material": "facade-8",
+        "material": "facade-14",
         "collider": false
       },
       {
@@ -1615,7 +1956,7 @@
           13,
           12
         ],
-        "material": "mass-0"
+        "material": "mass-2"
       },
       {
         "id": "in-e-1-facade-e",
@@ -1631,23 +1972,72 @@
         ],
         "yaw": 1.5707963267948966,
         "orientation": "vertical",
-        "material": "facade-9",
+        "material": "facade-15",
         "collider": false
       },
       {
-        "id": "in-tower",
+        "id": "in-tower-w",
         "type": "box",
         "position": [
-          0,
+          -20,
           17,
           0
         ],
         "size": [
-          26,
+          16,
           34,
           16
         ],
+        "material": "mass-0"
+      },
+      {
+        "id": "in-tower-w-facade-e",
+        "type": "plane",
+        "position": [
+          -11.94,
+          17,
+          0
+        ],
+        "size": [
+          16,
+          34
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-16",
+        "collider": false
+      },
+      {
+        "id": "in-tower-e",
+        "type": "box",
+        "position": [
+          20,
+          14,
+          0
+        ],
+        "size": [
+          14,
+          28,
+          14
+        ],
         "material": "mass-1"
+      },
+      {
+        "id": "in-tower-e-facade-w",
+        "type": "plane",
+        "position": [
+          12.94,
+          14,
+          0
+        ],
+        "size": [
+          14,
+          28
+        ],
+        "yaw": -1.5707963267948966,
+        "orientation": "vertical",
+        "material": "facade-17",
+        "collider": false
       },
       {
         "id": "rim-n-0",
@@ -1678,7 +2068,7 @@
         ],
         "yaw": 0,
         "orientation": "vertical",
-        "material": "facade-10",
+        "material": "facade-18",
         "collider": false
       },
       {
@@ -1710,7 +2100,7 @@
         ],
         "yaw": 0,
         "orientation": "vertical",
-        "material": "facade-11",
+        "material": "facade-19",
         "collider": false
       },
       {
@@ -1742,7 +2132,7 @@
         ],
         "yaw": 0,
         "orientation": "vertical",
-        "material": "facade-12",
+        "material": "facade-20",
         "collider": false
       },
       {
@@ -1774,7 +2164,7 @@
         ],
         "yaw": 3.141592653589793,
         "orientation": "vertical",
-        "material": "facade-13",
+        "material": "facade-21",
         "collider": false
       },
       {
@@ -1806,7 +2196,7 @@
         ],
         "yaw": 3.141592653589793,
         "orientation": "vertical",
-        "material": "facade-14",
+        "material": "facade-22",
         "collider": false
       },
       {
@@ -1838,7 +2228,7 @@
         ],
         "yaw": 3.141592653589793,
         "orientation": "vertical",
-        "material": "facade-15",
+        "material": "facade-23",
         "collider": false
       },
       {
@@ -1870,7 +2260,7 @@
         ],
         "yaw": 1.5707963267948966,
         "orientation": "vertical",
-        "material": "facade-16",
+        "material": "facade-24",
         "collider": false
       },
       {
@@ -1902,7 +2292,7 @@
         ],
         "yaw": 1.5707963267948966,
         "orientation": "vertical",
-        "material": "facade-17",
+        "material": "facade-25",
         "collider": false
       },
       {
@@ -1934,7 +2324,7 @@
         ],
         "yaw": -1.5707963267948966,
         "orientation": "vertical",
-        "material": "facade-18",
+        "material": "facade-26",
         "collider": false
       },
       {
@@ -1966,7 +2356,7 @@
         ],
         "yaw": -1.5707963267948966,
         "orientation": "vertical",
-        "material": "facade-19",
+        "material": "facade-27",
         "collider": false
       },
       {
@@ -2020,7 +2410,7 @@
         "id": "lamp-1-pole",
         "type": "box",
         "position": [
-          0,
+          8,
           2.6,
           -29.6
         ],
@@ -2035,7 +2425,7 @@
         "id": "lamp-1-lens",
         "type": "emissiveQuad",
         "position": [
-          0,
+          8,
           5.25,
           -29.6
         ],
@@ -2145,7 +2535,7 @@
         "id": "lamp-4-pole",
         "type": "box",
         "position": [
-          0,
+          8,
           2.6,
           29.6
         ],
@@ -2160,7 +2550,7 @@
         "id": "lamp-4-lens",
         "type": "emissiveQuad",
         "position": [
-          0,
+          8,
           5.25,
           29.6
         ],
@@ -2470,10 +2860,151 @@
         "collider": false
       },
       {
+        "id": "lamp-12-pole",
+        "type": "box",
+        "position": [
+          -6.4,
+          2.6,
+          -14
+        ],
+        "size": [
+          0.4,
+          5.2,
+          0.4
+        ],
+        "material": "lampPole"
+      },
+      {
+        "id": "lamp-12-lens",
+        "type": "emissiveQuad",
+        "position": [
+          -6.4,
+          5.25,
+          -14
+        ],
+        "size": [
+          0.7,
+          0.32
+        ],
+        "orientation": "horizontal",
+        "material": "lampLens",
+        "collider": false
+      },
+      {
+        "id": "lamp-12-pool",
+        "type": "emissiveQuad",
+        "position": [
+          -6.4,
+          0.025,
+          -14
+        ],
+        "size": [
+          5,
+          7
+        ],
+        "orientation": "horizontal",
+        "material": "lampPool",
+        "collider": false
+      },
+      {
+        "id": "lamp-13-pole",
+        "type": "box",
+        "position": [
+          6.4,
+          2.6,
+          0
+        ],
+        "size": [
+          0.4,
+          5.2,
+          0.4
+        ],
+        "material": "lampPole"
+      },
+      {
+        "id": "lamp-13-lens",
+        "type": "emissiveQuad",
+        "position": [
+          6.4,
+          5.25,
+          0
+        ],
+        "size": [
+          0.7,
+          0.32
+        ],
+        "orientation": "horizontal",
+        "material": "lampLens",
+        "collider": false
+      },
+      {
+        "id": "lamp-13-pool",
+        "type": "emissiveQuad",
+        "position": [
+          6.4,
+          0.025,
+          0
+        ],
+        "size": [
+          5,
+          7
+        ],
+        "orientation": "horizontal",
+        "material": "lampPool",
+        "collider": false
+      },
+      {
+        "id": "lamp-14-pole",
+        "type": "box",
+        "position": [
+          -6.4,
+          2.6,
+          14
+        ],
+        "size": [
+          0.4,
+          5.2,
+          0.4
+        ],
+        "material": "lampPole"
+      },
+      {
+        "id": "lamp-14-lens",
+        "type": "emissiveQuad",
+        "position": [
+          -6.4,
+          5.25,
+          14
+        ],
+        "size": [
+          0.7,
+          0.32
+        ],
+        "orientation": "horizontal",
+        "material": "lampLens",
+        "collider": false
+      },
+      {
+        "id": "lamp-14-pool",
+        "type": "emissiveQuad",
+        "position": [
+          -6.4,
+          0.025,
+          14
+        ],
+        "size": [
+          5,
+          7
+        ],
+        "orientation": "horizontal",
+        "material": "lampPool",
+        "collider": false
+      },
+      {
         "id": "neon-oakridge",
         "type": "plane",
         "position": [
-          -4,
+          -14,
           8.5,
           -24.15
         ],
@@ -2490,7 +3021,7 @@
         "id": "neon-oakridge-halo",
         "type": "emissiveQuad",
         "position": [
-          -4,
+          -14,
           8.5,
           -24.15
         ],
@@ -2507,7 +3038,7 @@
         "id": "neon-oakridge-streak",
         "type": "emissiveQuad",
         "position": [
-          -4,
+          -14,
           0.02,
           -32
         ],
@@ -2623,7 +3154,7 @@
         "id": "neon-nite",
         "type": "plane",
         "position": [
-          2,
+          -13,
           7.5,
           24.15
         ],
@@ -2640,7 +3171,7 @@
         "id": "neon-nite-halo",
         "type": "emissiveQuad",
         "position": [
-          2,
+          -13,
           7.5,
           24.15
         ],
@@ -2657,7 +3188,7 @@
         "id": "neon-nite-streak",
         "type": "emissiveQuad",
         "position": [
-          2,
+          -13,
           0.02,
           32
         ],
@@ -2667,6 +3198,56 @@
         ],
         "orientation": "horizontal",
         "material": "neon-nite-streak",
+        "collider": false
+      },
+      {
+        "id": "neon-relay",
+        "type": "plane",
+        "position": [
+          -12.08,
+          6.5,
+          0
+        ],
+        "size": [
+          5.5,
+          1.8
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "neon-relay-sign",
+        "collider": false
+      },
+      {
+        "id": "neon-relay-halo",
+        "type": "emissiveQuad",
+        "position": [
+          -12.08,
+          6.5,
+          0
+        ],
+        "size": [
+          8.25,
+          3.9600000000000004
+        ],
+        "yaw": 1.5707963267948966,
+        "orientation": "vertical",
+        "material": "neon-relay-halo",
+        "collider": false
+      },
+      {
+        "id": "neon-relay-streak",
+        "type": "emissiveQuad",
+        "position": [
+          -2,
+          0.02,
+          2
+        ],
+        "size": [
+          6.6,
+          7
+        ],
+        "orientation": "horizontal",
+        "material": "neon-relay-streak",
         "collider": false
       },
       {
@@ -3004,11 +3585,50 @@
         "decay": 2
       },
       {
+        "id": "lamp-12-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "position": [
+          -6.4,
+          5.4,
+          -14
+        ],
+        "intensity": 420,
+        "distance": 21,
+        "decay": 2
+      },
+      {
+        "id": "lamp-13-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "position": [
+          6.4,
+          5.4,
+          0
+        ],
+        "intensity": 420,
+        "distance": 21,
+        "decay": 2
+      },
+      {
+        "id": "lamp-14-light",
+        "type": "point",
+        "tintFrom": "primary",
+        "position": [
+          -6.4,
+          5.4,
+          14
+        ],
+        "intensity": 420,
+        "distance": 21,
+        "decay": 2
+      },
+      {
         "id": "neon-oakridge-light",
         "type": "point",
         "colorFrom": "primary",
         "position": [
-          -4,
+          -14,
           9.1,
           -24.15
         ],
@@ -3062,7 +3682,7 @@
         "type": "point",
         "colorFrom": "accent",
         "position": [
-          2,
+          -13,
           8.1,
           24.15
         ],
@@ -3074,6 +3694,24 @@
           "depth": 0.18
         },
         "linkedElementId": "neon-nite"
+      },
+      {
+        "id": "neon-relay-light",
+        "type": "point",
+        "colorFrom": "primary",
+        "position": [
+          -12.08,
+          7.1,
+          0
+        ],
+        "intensity": 400,
+        "distance": 21,
+        "decay": 2,
+        "flicker": {
+          "speed": 2.1,
+          "depth": 0.18
+        },
+        "linkedElementId": "neon-relay"
       },
       {
         "id": "neon-chapel-light",

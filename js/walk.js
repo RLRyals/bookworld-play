@@ -1073,6 +1073,24 @@ function init(world, base, spawnId, worldPath) {
   let rideSpeed = 0;
   let rideLean = 0, rideLeanSm = 0;
 
+  // Soft elliptical falloff for ground-glow quads (headlight pool). One shared texture,
+  // built lazily, disposed with the world's scene traversal like any other map.
+  let sharedGlowTexture = null;
+  function glowPoolTexture() {
+    if (sharedGlowTexture) return sharedGlowTexture;
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+    grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+    grad.addColorStop(0.45, 'rgba(255,255,255,0.30)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    sharedGlowTexture = new THREE.CanvasTexture(c);
+    return sharedGlowTexture;
+  }
+
   // A night world makes an unlit vehicle invisible, including the one you are sitting
   // on. Every mount (and rider companion) gets a headlight rig: a forward spot that is
   // the riding light, plus a soft under-glow that keeps the parked machine findable.
@@ -1092,9 +1110,11 @@ function init(world, base, spawnId, worldPath) {
     const cockpit = new THREE.PointLight(headColor.getHex(), 30, 3.2, 2.0);
     scene.add(cockpit);
     // the wet-road trick from the packs: a highly metallic road answers emissive quads,
-    // not diffuse light, so the headlight carries its own moving pool
-    const poolMat = new THREE.MeshBasicMaterial({ color: headColor.getHex(), transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false });
-    const pool = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 8), poolMat);
+    // not diffuse light, so the headlight carries its own moving pool. The quad wears a
+    // radial-gradient texture — a plain plane at any opacity reads as a bright square
+    // FLOOR attached to the bike (first playtest report), not as light on asphalt.
+    const poolMat = new THREE.MeshBasicMaterial({ color: headColor.getHex(), map: glowPoolTexture(), transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false });
+    const pool = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 9), poolMat);
     pool.rotation.order = 'YXZ';
     pool.visible = false;
     scene.add(pool);
@@ -1365,8 +1385,7 @@ function init(world, base, spawnId, worldPath) {
   }
 
   function makeBeacon() {
-    const color = new THREE.Color(routeDef.beaconColor || (world.palette && world.palette.accent) || '#66d9ff');
-    beaconMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    beaconMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
     const plane = new THREE.PlaneGeometry(1.7, 7);
     const g = new THREE.Group();
     const a = new THREE.Mesh(plane, beaconMat); a.position.y = 3.5;
@@ -1393,7 +1412,13 @@ function init(world, base, spawnId, worldPath) {
     updateRouteHud();
     if (routeState.done || routeState.idx >= routeState.total) { if (beacon) beacon.visible = false; return; }
     if (!beacon) beacon = makeBeacon();
-    const p = resolveTriggerPosition(routeDef.checkpoints[routeState.idx]);
+    const cp = routeDef.checkpoints[routeState.idx];
+    const p = resolveTriggerPosition(cp);
+    // a checkpoint may restyle its own marker — a DESTINATION wants to read differently
+    // from a waypoint (bigger, its own color) without the engine knowing what it means
+    beaconMat.color.set(cp.beaconColor || routeDef.beaconColor || (world.palette && world.palette.accent) || '#66d9ff');
+    const s = cp.beaconScale == null ? 1 : cp.beaconScale;
+    beacon.scale.set(s, s, s);
     beacon.position.set(p[0], p[1] || 0, p[2]);
     beacon.visible = true;
   }
@@ -1515,6 +1540,7 @@ function init(world, base, spawnId, worldPath) {
 
   // ---------- debug/verification handle (no gameplay effect) ----------
   const api = {
+    scene, // headless verification: lets a harness inspect/toggle scene objects
     manifest: world,
     worldPath,
     spawnId: activeSpawnId,
