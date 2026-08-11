@@ -33,5 +33,14 @@
   "ready": "Ready. {description}",
   "passage": "Passage",
   "close": "Close",
-  "closeCutscene": "Close cutscene"
+  "closeCutscene": "Close cutscene",
+  "controlsRiding": "<b>Riding</b>: <b>E</b> get on/off &middot; <b>W</b> throttle &middot; <b>S</b> brake/reverse &middot; <b>A D</b> steer &middot; <b>Shift</b> brake",
+  "ride.prompt": "Press E to ride",
+  "ride.dismountPrompt": "Press E to get off",
+  "ride.mountedHint": "Riding {label}. W to ride, A and D to steer, E to get off.",
+  "ride.dismounted": "Off the bike.",
+  "route.route": "Route",
+  "route.checkpoint": "Checkpoint",
+  "route.hud": "{label} · {n}/{total} — {cp}",
+  "route.complete": "{label} — complete"
 }

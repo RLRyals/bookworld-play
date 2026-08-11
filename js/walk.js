@@ -31,6 +31,7 @@
 import * as THREE from 'three';
 import { buildWorld } from './geometry.js';
 import { createPost } from './post.js';
+import { GLTFLoader } from './lib/GLTFLoader.js';
 import { resolveLang, loadChromeStrings, applyWorldLocale, t } from './i18n.js';
 
 // three's loader cache is what makes preload pay off: a FileLoader/ImageLoader fetch
@@ -467,6 +468,12 @@ function init(world, base, spawnId, worldPath) {
     touchHelpLi.innerHTML = t('controlsTouch');
     helpList.appendChild(touchHelpLi);
   }
+  let rideHelpLi = null;
+  if ((world.mounts || []).length) {
+    rideHelpLi = document.createElement('li');
+    rideHelpLi.innerHTML = t('controlsRiding');
+    helpList.appendChild(rideHelpLi);
+  }
 
   // ---------- renderer (shared across worlds) ----------
   const rend = getRenderer();
@@ -542,6 +549,12 @@ function init(world, base, spawnId, worldPath) {
   const respawnCfg = world.respawn || {};
   const RESPAWN_Y = respawnCfg.fallY == null ? -25 : respawnCfg.fallY;
 
+  // Per-mode body values (BookWorld-898 FINDINGS: a mount has a different radius and a
+  // different — usually smaller — step allowance than feet, so the collision helpers read
+  // these, not the walk constants; mounting/dismounting swaps them).
+  let CUR_RADIUS = RADIUS;
+  let CUR_STEP = STEP_HEIGHT;
+
   const spawnPos = (spawn.position || [0, 0, 0]);
   const pos = new THREE.Vector3(spawnPos[0], 0, spawnPos[2]);
   let feetY = 0; // ground-relative height of the player's feet; camera = feetY + EYE + bob
@@ -579,7 +592,7 @@ function init(world, base, spawnId, worldPath) {
     if (w) h = w.floorY;
     for (let i = 0; i < colliders.length; i++) {
       const c = colliders[i];
-      if (x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ && c.maxY <= ref + STEP_HEIGHT + 1e-6) {
+      if (x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ && c.maxY <= ref + CUR_STEP + 1e-6) {
         h = Math.max(h, c.maxY);
       }
     }
@@ -593,7 +606,7 @@ function init(world, base, spawnId, worldPath) {
     const feetTop = currentFeetY + BODY_HEIGHT;
     if (!(c.minY < feetTop && c.maxY > currentFeetY)) return false; // no vertical overlap
     const delta = c.maxY - currentFeetY;
-    if (delta <= STEP_HEIGHT + 1e-6) return false; // step-up, not a wall
+    if (delta <= CUR_STEP + 1e-6) return false; // step-up, not a wall
     if (currentFeetY >= c.maxY - 1e-6) return false; // already above the top
     return true;
   }
@@ -604,8 +617,8 @@ function init(world, base, spawnId, worldPath) {
       for (let i = 0; i < colliders.length; i++) {
         const c = colliders[i];
         if (!isWall(c, currentFeetY)) continue;
-        const minX = c.minX - RADIUS, maxX = c.maxX + RADIUS;
-        const minZ = c.minZ - RADIUS, maxZ = c.maxZ + RADIUS;
+        const minX = c.minX - CUR_RADIUS, maxX = c.maxX + CUR_RADIUS;
+        const minZ = c.minZ - CUR_RADIUS, maxZ = c.maxZ + CUR_RADIUS;
         if (p.x > minX && p.x < maxX && p.z > minZ && p.z < maxZ) {
           const dl = p.x - minX, dr = maxX - p.x, db = p.z - minZ, dt = maxZ - p.z;
           const m = Math.min(dl, dr, db, dt);
@@ -927,6 +940,394 @@ function init(world, base, spawnId, worldPath) {
     }
   }
 
+  // ============================================================================
+  // Mounts, companions, patrol routes (slice 6) — all pack data, zero story canon
+  // ============================================================================
+  const gltfLoader = new GLTFLoader();
+
+  // Load a pack glb scaled so its longest horizontal dimension equals `targetLength`.
+  // Image-to-3D exports arrive at arbitrary units; the pack states the vehicle's real
+  // length once ("a motorcycle is 2.2 m") instead of hand-tuning a magic scale factor.
+  // Base-aligned like props: the model's lowest point sits on the stated Y.
+  function loadScaledModel(def, onReady) {
+    gltfLoader.load(base + def.src, (gltf) => {
+      if (destroyed) return;
+      const root = gltf.scene;
+      const rawBox = new THREE.Box3().setFromObject(root);
+      const rawSize = rawBox.getSize(new THREE.Vector3());
+      let scale = def.scale == null ? 1 : def.scale;
+      if (def.targetLength && Math.max(rawSize.x, rawSize.z) > 1e-6) {
+        scale = def.targetLength / Math.max(rawSize.x, rawSize.z);
+      }
+      root.scale.setScalar(scale);
+      root.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(root);
+      scene.add(root);
+      onReady({ root, baseLift: -box.min.y, box, rawBox, scaleApplied: scale });
+    }, undefined, (err) => {
+      const msg = `${def.id || def.src}: model failed to load (${err && err.message ? err.message : err})`;
+      console.warn('[bookworld] ' + msg);
+      loadWarnings.push(msg);
+    });
+  }
+
+  // ---------- mounts: park, ride, dismount ----------
+  const mounts = (world.mounts || []).map((def) => {
+    const p = def.position || [0, 0, 0];
+    return { def, object: null, baseLift: 0, ready: false, x: p[0], y: p[1], z: p[2], yaw: def.yaw || 0, collider: null };
+  });
+  let mounted = null;
+  let nearMount = null;
+  let rideSpeed = 0;
+  let rideLean = 0, rideLeanSm = 0;
+
+  // A night world makes an unlit vehicle invisible, including the one you are sitting
+  // on. Every mount (and rider companion) gets a headlight rig: a forward spot that is
+  // the riding light, plus a soft under-glow that keeps the parked machine findable.
+  // Colors are pack data (headlightColor / underglow, defaulting to the palette accent).
+  function addVehicleLights(entry, def) {
+    // r155+ physical units: a spotlight is candela — hundreds light nothing at street
+    // range (the same two-orders-of-magnitude trap the first lighting pass hit)
+    const headColor = new THREE.Color(def.headlightColor || '#dff2ff');
+    const head = new THREE.SpotLight(headColor.getHex(), 3000, 48, 0.55, 0.7, 1.5);
+    head.visible = false;
+    head.target = new THREE.Object3D();
+    scene.add(head, head.target);
+    const glowColor = new THREE.Color(def.underglow || (world.palette && world.palette.accent) || '#35d0ff').getHex();
+    const glow = new THREE.PointLight(glowColor, 36, 5.5, 2.0);
+    scene.add(glow);
+    // small cockpit fill so the machine itself reads from the saddle at night
+    const cockpit = new THREE.PointLight(headColor.getHex(), 30, 3.2, 2.0);
+    scene.add(cockpit);
+    // the wet-road trick from the packs: a highly metallic road answers emissive quads,
+    // not diffuse light, so the headlight carries its own moving pool
+    const poolMat = new THREE.MeshBasicMaterial({ color: headColor.getHex(), transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false });
+    const pool = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 8), poolMat);
+    pool.rotation.order = 'YXZ';
+    pool.visible = false;
+    scene.add(pool);
+    entry.headlight = head;
+    entry.underglow = glow;
+    entry.cockpit = cockpit;
+    entry.headPool = pool;
+  }
+  function placeVehicleLights(entry, x, z, yaw2, feet, headOn) {
+    const fx = Math.sin(yaw2), fz = -Math.cos(yaw2);
+    if (entry.headlight) {
+      // the emitter sits AHEAD of the vehicle's nose: a spot inside the model nukes the
+      // nearest fairing surface into a bloom disc that fills the whole frame
+      entry.headlight.visible = !!headOn;
+      entry.headlight.position.set(x + fx * 2.1, feet + 0.85, z + fz * 2.1);
+      entry.headlight.target.position.set(x + fx * 17, feet + 0.1, z + fz * 17);
+    }
+    if (entry.underglow) entry.underglow.position.set(x, feet + 0.35, z);
+    if (entry.cockpit) {
+      entry.cockpit.visible = !!headOn;
+      entry.cockpit.position.set(x + fx * 0.7, feet + 1.25, z + fz * 0.7);
+    }
+    if (entry.headPool) {
+      entry.headPool.visible = !!headOn;
+      entry.headPool.position.set(x + fx * 5.6, feet + 0.03, z + fz * 5.6);
+      entry.headPool.rotation.set(-Math.PI / 2, -yaw2, 0);
+    }
+  }
+
+  function placeMountObject(m) {
+    if (!m.object) return;
+    m.object.position.set(m.x, m.y + m.baseLift, m.z);
+    m.object.rotation.set(0, -m.yaw + (m.def.modelYaw || 0), 0);
+    m.object.updateMatrixWorld(true);
+    placeVehicleLights(m, m.x, m.z, m.yaw, m.y, false);
+  }
+  function parkCollider(m) {
+    if (!m.object) return;
+    const b = new THREE.Box3().setFromObject(m.object);
+    m.collider = { minX: b.min.x, maxX: b.max.x, minZ: b.min.z, maxZ: b.max.z, minY: b.min.y, maxY: b.max.y, label: m.def.id || 'mount' };
+    colliders.push(m.collider);
+  }
+  function unparkCollider(m) {
+    if (!m.collider) return;
+    const i = colliders.indexOf(m.collider);
+    if (i >= 0) colliders.splice(i, 1);
+    m.collider = null;
+  }
+
+  for (const m of mounts) {
+    loadScaledModel(m.def, ({ root, baseLift }) => {
+      m.object = root;
+      m.baseLift = baseLift;
+      m.ready = true;
+      if (m.def.headlight !== false) addVehicleLights(m, m.def);
+      placeMountObject(m);
+      parkCollider(m);
+    });
+  }
+
+  function mountUp(m) {
+    if (!m || !m.ready || mounted) return;
+    mounted = m;
+    unparkCollider(m);
+    pos.x = m.x; pos.z = m.z;
+    yaw = m.yaw; smoothYaw = yaw;
+    feetY = supportHeight(m.x, m.z, feetY + 1);
+    vy = 0; grounded = true; swimming = false; currentWater = null;
+    rideSpeed = 0; rideLean = 0; rideLeanSm = 0;
+    CUR_RADIUS = m.def.bodyRadius == null ? 0.6 : m.def.bodyRadius;
+    CUR_STEP = m.def.stepHeight == null ? 0.35 : m.def.stepHeight;
+    announce(m.def.mountedHint || t('ride.mountedHint', { label: m.def.label || m.def.id }));
+  }
+
+  function dismount() {
+    const m = mounted;
+    if (!m) return;
+    mounted = null;
+    rideSpeed = 0; rideLean = 0;
+    CUR_RADIUS = RADIUS; CUR_STEP = STEP_HEIGHT;
+    m.x = pos.x; m.z = pos.z; m.yaw = yaw; m.y = feetY;
+    placeMountObject(m);
+    parkCollider(m);
+    // step off beside the saddle; the collider push-out settles any overlap
+    pos.x += Math.cos(yaw) * 1.2;
+    pos.z += Math.sin(yaw) * 1.2;
+    resolveHorizontal(pos, feetY);
+    feetY = supportHeight(pos.x, pos.z, feetY + CUR_STEP);
+    announce(m.def.dismountedHint || t('ride.dismounted'));
+  }
+
+  // The ride model: throttle/brake along the facing direction with speed-scaled
+  // steering — deliberately arcade-simple (a heading + a scalar speed), not a physics
+  // sim. Same collision helpers as walking, so a wall stops a bike the same way it
+  // stops a person; hitting one scrubs speed instead of letting the bike wall-surf.
+  function stepRide(dt) {
+    const def = mounted.def;
+    const maxF = def.rideSpeed == null ? 11 : def.rideSpeed;
+    const maxR = 3;
+    const accel = def.accel == null ? 7 : def.accel;
+    const brake = def.brake == null ? 14 : def.brake;
+    const turnRate = def.turnRate == null ? 1.7 : def.turnRate;
+
+    let steer = 0, throttle = 0;
+    if (down('KeyA') || down('ArrowLeft')) steer -= 1;
+    if (down('KeyD') || down('ArrowRight')) steer += 1;
+    if (down('KeyW') || down('ArrowUp')) throttle += 1;
+    if (down('KeyS') || down('ArrowDown')) throttle -= 1;
+    if (moveTouch) {
+      const dx = moveTouch.curX - moveTouch.startX;
+      const dy = moveTouch.curY - moveTouch.startY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > TOUCH_MOVE_DEADZONE) { throttle += -dy / dist; steer += dx / dist; }
+    }
+    steer = Math.max(-1, Math.min(1, steer));
+    throttle = Math.max(-1, Math.min(1, throttle));
+
+    if (throttle > 0) {
+      rideSpeed = Math.min(maxF, rideSpeed + accel * throttle * dt);
+    } else if (throttle < 0) {
+      if (rideSpeed > 0.05) rideSpeed = Math.max(0, rideSpeed - brake * dt);
+      else rideSpeed = Math.max(-maxR, rideSpeed + accel * 0.5 * throttle * dt);
+    } else {
+      rideSpeed *= Math.exp(-dt / 1.4); // coast
+      if (Math.abs(rideSpeed) < 0.02) rideSpeed = 0;
+    }
+    if (down('ShiftLeft') || down('ShiftRight')) rideSpeed *= Math.exp(-dt / 0.25);
+
+    const sf = Math.min(1, Math.abs(rideSpeed) / (0.22 * maxF));
+    if (rideSpeed !== 0 && steer !== 0) yaw += steer * turnRate * sf * dt * (rideSpeed < 0 ? -1 : 1);
+    rideLean = reduce ? 0 : -steer * sf * 0.1;
+
+    if (rideSpeed !== 0) {
+      forward.set(Math.sin(yaw), 0, -Math.cos(yaw));
+      const x0 = pos.x, z0 = pos.z;
+      const intended = Math.abs(rideSpeed) * dt;
+      pos.addScaledVector(forward, rideSpeed * dt);
+      // a bike does not swim: a water volume is a hard edge while mounted
+      const w = findWaterAt(pos.x, pos.z);
+      if (w && feetY <= w.surfaceY + 0.5) { pos.x = x0; pos.z = z0; rideSpeed *= 0.2; }
+      resolveHorizontal(pos, feetY);
+      const moved = Math.hypot(pos.x - x0, pos.z - z0);
+      if (moved > 1e-6) noteMotion();
+      if (moved < intended * 0.5) rideSpeed *= 0.35;
+    }
+
+    // vertical: gravity and ground support as on foot, but there is no jump from the saddle
+    vy -= GRAVITY * dt;
+    if (vy < -MAX_FALL_SPEED) vy = -MAX_FALL_SPEED;
+    let newFeetY = feetY + vy * dt;
+    newFeetY = capCeiling(newFeetY);
+    if (newFeetY < RESPAWN_Y) {
+      respawn();
+    } else {
+      const support = supportHeight(pos.x, pos.z, feetY);
+      if (newFeetY <= support) { newFeetY = support; vy = 0; grounded = true; }
+      else grounded = false;
+      feetY = newFeetY;
+    }
+
+    const m = mounted;
+    m.x = pos.x; m.z = pos.z; m.yaw = yaw; m.y = feetY;
+    if (m.object) {
+      // nose ahead of the camera so the front of the bike reads in first person
+      const setback = def.cameraSetback == null ? 0.5 : def.cameraSetback;
+      m.object.position.set(pos.x + Math.sin(yaw) * setback, feetY + m.baseLift, pos.z - Math.cos(yaw) * setback);
+      m.object.rotation.set(0, -yaw + (def.modelYaw || 0), reduce ? 0 : rideLeanSm * 0.7);
+      placeVehicleLights(m, pos.x, pos.z, yaw, feetY, true);
+    }
+  }
+
+  // ---------- companions: a scripted fellow rider on a waypoint route ----------
+  // The minimal NPC primitive (stylized/distant per the standing ruling): follows its
+  // route, waits when the player falls behind (`leadDistance` rubber-band), no player
+  // collision. `rider: true` adds a crude helmeted silhouette — enough to read as a
+  // person at night speed, deliberately nothing more.
+  const companions = (world.companions || []).map((def) => {
+    const route = def.route || [];
+    const start = def.position || (route.length ? [route[0][0], 0, route[0][1]] : [0, 0, 0]);
+    return { def, object: null, baseLift: 0, ready: false, x: start[0], z: start[2] == null ? start[1] : start[2], yaw: def.yaw || 0, speed: 0, wpIndex: 0 };
+  });
+
+  function addRiderSilhouette(root, rawBox, scaleApplied, def) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0x14181c, roughness: 0.7, metalness: 0.2 });
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.62, 0.46), mat);
+    torso.position.y = 0.32;
+    torso.rotation.x = 0.45; // forward lean over the tank
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), mat);
+    helmet.position.set(0, 0.66, -0.16);
+    g.add(torso, helmet);
+    // children inherit the root's unit-fixing scale; invert it so the rider is sized in
+    // metres, and seat them at the model's own centre, ~62% of its height
+    g.scale.setScalar(1 / scaleApplied);
+    const c = rawBox.getCenter(new THREE.Vector3());
+    g.position.set(c.x, rawBox.min.y + (rawBox.max.y - rawBox.min.y) * 0.62, c.z);
+    g.rotation.y = def.riderYaw || 0;
+    root.add(g);
+  }
+
+  for (const c of companions) {
+    loadScaledModel(c.def, ({ root, baseLift, rawBox, scaleApplied }) => {
+      if (c.def.rider) addRiderSilhouette(root, rawBox, scaleApplied, c.def);
+      c.object = root;
+      c.baseLift = baseLift;
+      c.ready = true;
+      if (c.def.headlight !== false) addVehicleLights(c, c.def);
+      root.position.set(c.x, supportHeight(c.x, c.z, 1) + baseLift, c.z);
+      root.rotation.y = -c.yaw + (c.def.modelYaw || 0);
+      placeVehicleLights(c, c.x, c.z, c.yaw, supportHeight(c.x, c.z, 1), true);
+    });
+  }
+
+  function updateCompanions(dt) {
+    for (const c of companions) {
+      if (!c.ready) continue;
+      const route = c.def.route || [];
+      if (!route.length) continue;
+      const wp = route[c.wpIndex % route.length];
+      const dx = wp[0] - c.x, dz = wp[1] - c.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 1.5) {
+        if (c.wpIndex + 1 >= route.length && c.def.loop === false) { c.speed = 0; continue; }
+        c.wpIndex = (c.wpIndex + 1) % route.length;
+        continue;
+      }
+      const toPlayer = Math.hypot(pos.x - c.x, pos.z - c.z);
+      const lead = c.def.leadDistance == null ? 25 : c.def.leadDistance;
+      const maxV = c.def.speed == null ? 9 : c.def.speed;
+      const want = toPlayer > lead ? 0 : maxV;
+      c.speed += (want - c.speed) * (1 - Math.exp(-dt / 0.7));
+      if (c.speed > 0.01) {
+        const targetYaw = Math.atan2(dx, -dz);
+        let dyaw = targetYaw - c.yaw;
+        while (dyaw > Math.PI) dyaw -= 2 * Math.PI;
+        while (dyaw < -Math.PI) dyaw += 2 * Math.PI;
+        c.yaw += dyaw * Math.min(1, dt * 3.2);
+        c.x += Math.sin(c.yaw) * c.speed * dt;
+        c.z += -Math.cos(c.yaw) * c.speed * dt;
+        if (c.object) {
+          const feet = supportHeight(c.x, c.z, 1);
+          c.object.position.set(c.x, feet + c.baseLift, c.z);
+          c.object.rotation.set(0, -c.yaw + (c.def.modelYaw || 0), reduce ? 0 : -dyaw * 0.35);
+          placeVehicleLights(c, c.x, c.z, c.yaw, feet, true);
+        }
+      }
+    }
+  }
+
+  // ---------- patrol route: ordered checkpoints, a beacon, non-blocking radio text ----------
+  // Unlike trigger zones (unordered, modal), a route is a sequence: only the CURRENT
+  // checkpoint is live, a beacon marks it, reaching it plays its text as a passing
+  // radio line (never an input-locking overlay — the player is riding), and finishing
+  // the list fires the same trigger union zones use (prose/cutscene/link).
+  const routeDef = world.route || null;
+  const routeState = { idx: 0, done: false, total: routeDef ? (routeDef.checkpoints || []).length : 0 };
+  const routeHud = document.getElementById('route-hud');
+  const radioEl = document.getElementById('radio');
+  let radioTimer = 0;
+  let beacon = null, beaconMat = null;
+
+  function radioToast(text) {
+    if (!radioEl || !text) return;
+    radioEl.textContent = text;
+    radioEl.classList.remove('hidden');
+    clearTimeout(radioTimer);
+    radioTimer = setTimeout(() => radioEl.classList.add('hidden'), 7000);
+  }
+
+  function makeBeacon() {
+    const color = new THREE.Color(routeDef.beaconColor || (world.palette && world.palette.accent) || '#66d9ff');
+    beaconMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const plane = new THREE.PlaneGeometry(1.7, 7);
+    const g = new THREE.Group();
+    const a = new THREE.Mesh(plane, beaconMat); a.position.y = 3.5;
+    const b = new THREE.Mesh(plane, beaconMat); b.position.y = 3.5; b.rotation.y = Math.PI / 2;
+    g.add(a, b);
+    scene.add(g);
+    return g;
+  }
+
+  function updateRouteHud() {
+    if (!routeHud) return;
+    if (!routeDef) { routeHud.classList.add('hidden'); return; }
+    routeHud.classList.remove('hidden');
+    if (routeState.done) {
+      routeHud.textContent = routeDef.completeHud || t('route.complete', { label: routeDef.label || t('route.route') });
+      return;
+    }
+    const cp = routeDef.checkpoints[routeState.idx];
+    routeHud.textContent = t('route.hud', { label: routeDef.label || t('route.route'), n: routeState.idx + 1, total: routeState.total, cp: cp.label || '' }).trim();
+  }
+
+  function placeBeacon() {
+    if (!routeDef) return;
+    updateRouteHud();
+    if (routeState.done || routeState.idx >= routeState.total) { if (beacon) beacon.visible = false; return; }
+    if (!beacon) beacon = makeBeacon();
+    const p = resolveTriggerPosition(routeDef.checkpoints[routeState.idx]);
+    beacon.position.set(p[0], p[1] || 0, p[2]);
+    beacon.visible = true;
+  }
+
+  function updateRoute() {
+    if (!routeDef || routeState.done) return;
+    const cp = routeDef.checkpoints[routeState.idx];
+    const p = resolveTriggerPosition(cp);
+    const r = cp.radius == null ? 6 : cp.radius;
+    const dx = pos.x - p[0], dz = pos.z - p[2];
+    if (dx * dx + dz * dz > r * r) return;
+    announce(`${cp.label || t('route.checkpoint')}. ${cp.srHint || ''}`.trim());
+    if (cp.text) radioToast(cp.text);
+    routeState.idx++;
+    if (routeState.idx >= routeState.total) {
+      routeState.done = true;
+      const t = routeDef.onComplete;
+      if (t) {
+        if (t.type === 'prose') openProse(t.text || '');
+        else if (t.type === 'cutscene') playCutscene(t.cutsceneId);
+        else if (t.type === 'link') travelTo(t.toWorld, t.spawn, base);
+      }
+    }
+    placeBeacon();
+  }
+
   function fire(z) {
     const trig = z.def.trigger || {};
     z.fired = true;
@@ -945,6 +1346,8 @@ function init(world, base, spawnId, worldPath) {
   promptEl.addEventListener('click', () => interact(), { signal });
 
   function interact() {
+    if (mounted) { dismount(); return; }
+    if (nearMount) { mountUp(nearMount); return; }
     if (!activeZone) return;
     if (activeZone.def.once && activeZone.fired) {
       announce(t('nothingMoreHere', { label: activeZone.def.label }));
@@ -986,7 +1389,30 @@ function init(world, base, spawnId, worldPath) {
       }
     }
     activeZone = prompted;
-    if (prompted && !(prompted.def.once && prompted.fired)) {
+    // the ride prompt outranks zone prompts; while mounted the only prompt is the
+    // dismount hint, and only once the bike is close to stopped
+    nearMount = null;
+    if (!mounted) {
+      for (const m of mounts) {
+        if (!m.ready) continue;
+        const reach = m.def.reach == null ? 2.4 : m.def.reach;
+        const dx = pos.x - m.x, dz = pos.z - m.z;
+        if (dx * dx + dz * dz <= reach * reach) { nearMount = m; break; }
+      }
+    }
+
+    if (mounted) {
+      if (Math.abs(rideSpeed) < 1.2) {
+        promptEl.textContent = mounted.def.dismountPrompt || t('ride.dismountPrompt');
+        promptEl.classList.remove('hidden');
+      } else {
+        promptEl.classList.add('hidden');
+        promptEl.textContent = '';
+      }
+    } else if (nearMount) {
+      promptEl.textContent = nearMount.def.prompt || t('ride.prompt');
+      promptEl.classList.remove('hidden');
+    } else if (prompted && !(prompted.def.once && prompted.fired)) {
       promptEl.textContent = prompted.def.prompt || t('pressE');
       promptEl.classList.remove('hidden');
     } else {
@@ -1049,6 +1475,17 @@ function init(world, base, spawnId, worldPath) {
         promptVisible: !promptEl.classList.contains('hidden'),
         promptText: promptEl.textContent,
         activeZone: activeZone ? activeZone.def.id : null,
+        mounted: mounted ? mounted.def.id : null,
+        nearMount: nearMount ? nearMount.def.id : null,
+        rideSpeed: +rideSpeed.toFixed(3),
+        mountsLoaded: mounts.filter((m) => m.ready).length,
+        companionsLoaded: companions.filter((c) => c.ready).length,
+        companions: companions.map((c) => ({ id: c.def.id, x: +c.x.toFixed(2), z: +c.z.toFixed(2), speed: +c.speed.toFixed(2), wpIndex: c.wpIndex })),
+        routeIndex: routeState.idx,
+        routeDone: routeState.done,
+        routeHudText: routeHud ? routeHud.textContent : '',
+        radioVisible: !!(radioEl && !radioEl.classList.contains('hidden')),
+        radioText: radioEl ? radioEl.textContent : '',
         cutsceneOpen: !cutsceneOverlay.classList.contains('hidden'),
         cutsceneSrc: cutsceneVideo.getAttribute('src'),
         proseOpen: !proseOverlay.classList.contains('hidden'),
@@ -1058,6 +1495,15 @@ function init(world, base, spawnId, worldPath) {
         zones: zones.map((z) => ({ id: z.def.id, inside: z.inside, fired: z.fired, armed: z.armed, spawnSuppressed: z.spawnSuppressed }))
       };
     },
+    // verification aids for the mount slice — same contract as debugTeleport
+    debugMount(id) {
+      const m = mounts.find((mm) => mm.def.id === id) || mounts[0];
+      if (mounted) dismount();
+      mountUp(m);
+      return !!mounted;
+    },
+    debugDismount() { dismount(); },
+    debugSetRideSpeed(v) { if (mounted) rideSpeed = v; },
     // screenshot/debug aid only — moves the camera, changes nothing else
     debugTeleport(x, z, y, p, y0) {
       pos.set(x, 0, z);
@@ -1108,6 +1554,11 @@ function init(world, base, spawnId, worldPath) {
   const firstFrame = new Promise((r) => { resolveFirstFrame = r; });
 
   function stepPlayer(dt) {
+    // mounted is a third movement mode beside walking and swimming: it swaps what the
+    // keys mean, keeps gravity, and redefines what the body is (radius/step) — the seam
+    // the locomotion slice left for exactly this (BookWorld-898 FINDINGS)
+    if (mounted) { stepRide(dt); return; }
+
     // keyboard turning / pitching — the mouse-free path
     if (down('ArrowLeft')) yaw -= TURN * dt;
     if (down('ArrowRight')) yaw += TURN * dt;
@@ -1220,6 +1671,8 @@ function init(world, base, spawnId, worldPath) {
       const sub = dt / steps;
       for (let i = 0; i < steps; i++) stepPlayer(sub);
       updateZones();
+      updateRoute();
+      updateCompanions(dt);
     }
     for (const k in edge) edge[k] = false;
 
@@ -1230,21 +1683,25 @@ function init(world, base, spawnId, worldPath) {
     // the feel is identical at 12 fps and 144 fps; a naive `x += (target-x) * dt * k`
     // lerp is framerate-dependent and was the second half of the old-laptop lag.
     if (reduce) {
-      smoothYaw = yaw; smoothPitch = pitch; bobY = 0; bobRoll = 0;
+      smoothYaw = yaw; smoothPitch = pitch; bobY = 0; bobRoll = 0; rideLeanSm = 0;
     } else {
       const k = 1 - Math.exp(-dt / 0.035); // frame-rate independent, ~35ms time constant
       smoothYaw += (yaw - smoothYaw) * k;
       smoothPitch += (pitch - smoothPitch) * k;
-      const moving = !inputLocked && !swimming && (down('KeyW') || down('KeyS') || down('KeyA') || down('KeyD') || down('ArrowUp') || down('ArrowDown'));
+      const moving = !inputLocked && !swimming && !mounted && (down('KeyW') || down('KeyS') || down('KeyA') || down('KeyD') || down('ArrowUp') || down('ArrowDown'));
       const targetBob = moving ? Math.sin(bobPhase) * 0.042 : 0;
       const targetRoll = moving ? Math.sin(bobPhase * 0.5) * 0.007 : 0;
       const kb = 1 - Math.exp(-dt / 0.11); // ~110ms time constant, was a dt*9 lerp
       bobY += (targetBob - bobY) * kb;
       bobRoll += (targetRoll - bobRoll) * kb;
+      rideLeanSm += (rideLean - rideLeanSm) * kb;
     }
 
-    camera.position.set(pos.x, feetY + EYE + bobY + swimBobY, pos.z);
-    camera.rotation.set(smoothPitch, -smoothYaw, bobRoll);
+    const eyeNow = mounted ? (mounted.def.eyeHeight == null ? 1.45 : mounted.def.eyeHeight) : EYE;
+    camera.position.set(pos.x, feetY + eyeNow + (mounted ? 0 : bobY + swimBobY), pos.z);
+    camera.rotation.set(smoothPitch, -smoothYaw, mounted ? rideLeanSm : bobRoll);
+
+    if (beaconMat && !reduce && beacon && beacon.visible) beaconMat.opacity = 0.24 + 0.1 * Math.sin(t * 2.2);
 
     // underwater tint/fog: swap the scene fog toward the water volume's tint while the
     // camera itself is below the surface, restore vanilla fog once it surfaces. Routed
@@ -1274,6 +1731,7 @@ function init(world, base, spawnId, worldPath) {
       api.fps = fps;
     }
   }
+  placeBeacon();
   frame();
 
   addEventListener('resize', () => {
@@ -1296,12 +1754,16 @@ function init(world, base, spawnId, worldPath) {
     cancelAnimationFrame(rafId);
     listeners.abort();
     if (touchHelpLi && touchHelpLi.parentNode) touchHelpLi.parentNode.removeChild(touchHelpLi);
+    if (rideHelpLi && rideHelpLi.parentNode) rideHelpLi.parentNode.removeChild(rideHelpLi);
     cutsceneVideo.pause();
     cutsceneVideo.removeAttribute('src');
     cutsceneOverlay.classList.add('hidden');
     proseOverlay.classList.add('hidden');
     promptEl.classList.add('hidden');
     promptEl.textContent = '';
+    clearTimeout(radioTimer);
+    if (radioEl) { radioEl.classList.add('hidden'); radioEl.textContent = ''; }
+    if (routeHud) { routeHud.classList.add('hidden'); routeHud.textContent = ''; }
     inputLocked = false;
     post.dispose();
     built.dispose();

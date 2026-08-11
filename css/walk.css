@@ -126,6 +126,48 @@ html, body {
   }
 }
 
+/* patrol-route HUD: quiet top-centre strip, same night-glass palette as the prompt */
+.route-hud {
+  position: fixed;
+  left: 50%;
+  top: 0.9rem;
+  transform: translateX(-50%);
+  z-index: 20;
+  padding: 0.35em 1em;
+  border-radius: 999px;
+  background: rgba(4, 10, 12, 0.66);
+  border: 1px solid rgba(47, 230, 164, 0.35);
+  color: #cfe8dc;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.route-hud.hidden { display: none; }
+
+/* radio line: a passing voice, never a modal — sits above the prompt pill, fades in */
+.radio {
+  position: fixed;
+  left: 50%;
+  top: 68%;
+  transform: translateX(-50%);
+  z-index: 19;
+  max-width: min(34rem, 86vw);
+  padding: 0.55em 1.2em;
+  border-radius: 0.6em;
+  background: rgba(4, 10, 12, 0.72);
+  border-left: 3px solid rgba(53, 208, 255, 0.7);
+  color: #dcecf4;
+  font-size: 0.95rem;
+  font-style: italic;
+  text-align: center;
+  pointer-events: none;
+  animation: radio-in 240ms ease-out;
+}
+.radio.hidden { display: none; }
+@keyframes radio-in { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .radio { animation: none; } }
+
 .fps {
   position: fixed;
   right: 1rem;

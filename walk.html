@@ -30,6 +30,12 @@
   <div id="prompt" class="prompt hidden" aria-hidden="true"></div>
   <p id="walk-status" class="sr-only" role="status" aria-live="polite"></p>
 
+  <!-- patrol-route HUD (top centre) + non-blocking radio line (lower third). Both are
+       pack-driven and stay hidden in packs that declare no route; the aria-live status
+       region above already announces the same information to assistive tech. -->
+  <div id="route-hud" class="route-hud hidden" aria-hidden="true"></div>
+  <div id="radio" class="radio hidden" aria-hidden="true"></div>
+
   <div id="fps-readout" class="fps hidden" aria-hidden="true"></div>
 
   <!-- graphics tier: a real button so it is in the tab order and screen-reader operable.
@@ -62,6 +68,6 @@
   <script type="importmap">
   { "imports": { "three": "./js/three.module.js" } }
   </script>
-  <script type="module" src="js/walk.js?v=3a69cf4"></script>
+  <script type="module" src="js/walk.js?v=7cf5af1"></script>
 </body>
 </html>

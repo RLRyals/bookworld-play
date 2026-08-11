@@ -84,5 +84,39 @@ export async function applyWorldLocale(world, base, lang) {
       if (ov && ov.title) cut.title = ov.title;
     }
   }
+  // Mount/companion/route surfaces (BookWorld-bbm) follow the same contract: prose and
+  // labels only, id-keyed, never the ride constants or waypoint wiring.
+  if (locale.mounts) {
+    for (const m of world.mounts || []) {
+      const ov = locale.mounts[m.id];
+      if (!ov) continue;
+      for (const k of ['label', 'prompt', 'dismountPrompt', 'mountedHint', 'dismountedHint', 'srHint']) {
+        if (ov[k]) m[k] = ov[k];
+      }
+    }
+  }
+  if (locale.companions) {
+    for (const c of world.companions || []) {
+      const ov = locale.companions[c.id];
+      if (ov && ov.label) c.label = ov.label;
+    }
+  }
+  if (locale.route && world.route) {
+    const ov = locale.route;
+    if (ov.label) world.route.label = ov.label;
+    if (ov.completeHud) world.route.completeHud = ov.completeHud;
+    if (ov.checkpoints) {
+      for (const cp of world.route.checkpoints || []) {
+        const c = ov.checkpoints[cp.id];
+        if (!c) continue;
+        if (c.label) cp.label = c.label;
+        if (c.srHint) cp.srHint = c.srHint;
+        if (c.text) cp.text = c.text;
+      }
+    }
+    if (ov.onCompleteText && world.route.onComplete && world.route.onComplete.type === 'prose') {
+      world.route.onComplete.text = ov.onCompleteText;
+    }
+  }
   return world;
 }

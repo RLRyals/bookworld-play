@@ -34,5 +34,14 @@
   "ready": "Listo. {description}",
   "passage": "Pasaje",
   "close": "Cerrar",
-  "closeCutscene": "Cerrar escena"
+  "closeCutscene": "Cerrar escena",
+  "controlsRiding": "<b>Conducir</b>: <b>E</b> subir/bajar &middot; <b>W</b> acelerar &middot; <b>S</b> frenar/reversa &middot; <b>A D</b> girar &middot; <b>Shift</b> frenar",
+  "ride.prompt": "Presiona E para conducir",
+  "ride.dismountPrompt": "Presiona E para bajarte",
+  "ride.mountedHint": "Conduciendo {label}. W para avanzar, A y D para girar, E para bajarte.",
+  "ride.dismounted": "Fuera de la moto.",
+  "route.route": "Ruta",
+  "route.checkpoint": "Punto de control",
+  "route.hud": "{label} · {n}/{total} — {cp}",
+  "route.complete": "{label} — completada"
 }
