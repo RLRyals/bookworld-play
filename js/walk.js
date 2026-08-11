@@ -64,8 +64,12 @@ function localizeStaticChrome() {
   setHtml('help-wasd', 'controlsWasd');
   setHtml('help-arrows', 'controlsArrows');
   setHtml('help-jump', 'controlsJump');
+  setHtml('help-sprint', 'controlsSprint');
   setHtml('help-interact', 'controlsInteract');
   setHtml('help-hide', 'controlsHidePanel');
+  document.getElementById('help-close')?.setAttribute('aria-label', t('helpClose'));
+  document.getElementById('help-open')?.setAttribute('aria-label', t('helpOpen'));
+  setText('jump-btn', 'jump');
   setText('prose-title', 'passage');
   setText('prose-close', 'close');
   document.getElementById('cutscene-overlay')?.setAttribute('aria-label', t('cutscene'));
@@ -293,6 +297,63 @@ function getRenderer() {
 const statusEl = document.getElementById('walk-status');
 function announceGlobal(msg) { if (statusEl) statusEl.textContent = msg; }
 
+// ---------- help panel show/hide (session-level: the panel outlives worlds) ----------
+// The H key was the only way to dismiss the legend, which on a phone means no way at
+// all. The x closes it, the ? brings it back, H still toggles from the keyboard.
+const helpPanelEl = document.getElementById('walk-help');
+const helpOpenBtn = document.getElementById('help-open');
+const helpCloseBtn = document.getElementById('help-close');
+function setHelpVisible(show) {
+  if (helpPanelEl) helpPanelEl.classList.toggle('hidden', !show);
+  if (helpOpenBtn) helpOpenBtn.classList.toggle('hidden', show);
+}
+if (helpCloseBtn) helpCloseBtn.addEventListener('click', () => { setHelpVisible(false); if (canvas) canvas.focus(); });
+if (helpOpenBtn) helpOpenBtn.addEventListener('click', () => setHelpVisible(true));
+
+// ---------- fullscreen + keyboard lock (the Ctrl+W answer) ----------
+// A tester with Minecraft muscle memory holds Ctrl+W to sprint — outside fullscreen
+// that is the browser's "close tab" and nothing a page listener can prevent. In
+// fullscreen, Chromium's Keyboard Lock API delivers even system shortcuts to the game;
+// holding Esc exits per the browser's own UX. The button is best-effort everywhere else.
+const fsButton = document.getElementById('fullscreen-toggle');
+function updateFsButton() {
+  if (!fsButton) return;
+  const on = !!document.fullscreenElement;
+  fsButton.textContent = t(on ? 'fullscreen.exit' : 'fullscreen.enter');
+  fsButton.setAttribute('aria-label', t(on ? 'fullscreen.ariaExit' : 'fullscreen.ariaEnter'));
+}
+if (fsButton) {
+  fsButton.addEventListener('click', async (ev) => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        if (navigator.keyboard && navigator.keyboard.lock) await navigator.keyboard.lock();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch { /* fullscreen/lock can be denied; nothing to do */ }
+    // same focus rule as the quality toggle: a pointer activation must not leave the
+    // button owning the keyboard
+    if (ev && ev.detail > 0) { fsButton.blur(); if (canvas) canvas.focus(); }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+    updateFsButton();
+  });
+}
+
+// Outside fullscreen the best available net is the leave-confirmation dialog: an
+// accidental Ctrl+W becomes a prompt instead of a silently lost session. Armed only
+// after real input so a drive-by visitor is never nagged.
+let playerHasInput = false;
+addEventListener('keydown', () => { playerHasInput = true; }, { once: true });
+addEventListener('touchstart', () => { playerHasInput = true; }, { once: true });
+addEventListener('beforeunload', (e) => {
+  if (!playerHasInput) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
 const fadeEl = document.getElementById('fade');
 const FADE_MS = reduce ? 0 : 240;
 function fadeTo(opaque) {
@@ -475,6 +536,17 @@ function init(world, base, spawnId, worldPath) {
     helpList.appendChild(rideHelpLi);
   }
 
+  // on-screen jump button — the touch equivalent of Space (jump on land, rise in water)
+  const jumpBtn = document.getElementById('jump-btn');
+  if (jumpBtn && (matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)) {
+    jumpBtn.classList.remove('hidden');
+    jumpBtn.textContent = t('jump');
+    jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if (!inputLocked) touchJumpHeld = true; }, { passive: false, signal });
+    const endJump = (e) => { e.preventDefault(); touchJumpHeld = false; };
+    jumpBtn.addEventListener('touchend', endJump, { passive: false, signal });
+    jumpBtn.addEventListener('touchcancel', endJump, { passive: false, signal });
+  }
+
   // ---------- renderer (shared across worlds) ----------
   const rend = getRenderer();
   let tierNow = tierSettings(perf.tier);
@@ -531,6 +603,7 @@ function init(world, base, spawnId, worldPath) {
   const playerCfg = world.player || {};
   const EYE = playerCfg.eyeHeight == null ? 1.65 : playerCfg.eyeHeight;
   const SPEED = playerCfg.walkSpeed == null ? 2.8 : playerCfg.walkSpeed;
+  const RUN_SPEED = playerCfg.runSpeed == null ? SPEED * 1.8 : playerCfg.runSpeed;
   const RADIUS = playerCfg.radius == null ? 0.45 : playerCfg.radius;
   const JUMP_HEIGHT = playerCfg.jumpHeight == null ? 1.1 : playerCfg.jumpHeight;
   const STEP_HEIGHT = playerCfg.stepHeight == null ? 0.45 : playerCfg.stepHeight;
@@ -671,6 +744,16 @@ function init(world, base, spawnId, worldPath) {
   let inputLocked = false;
   const helpPanel = document.getElementById('walk-help');
 
+  // Sprint carries three activations because testers arrive with Minecraft muscle
+  // memory: hold Ctrl (safe only under fullscreen keyboard-lock — Ctrl+W otherwise
+  // belongs to the browser and closes the tab, which is why double-tap exists), or
+  // double-tap-and-hold W, or on touch just drag the move finger farther.
+  let sprintLatch = false;
+  let lastWDown = 0;
+  let touchSprint = false;
+  let touchJumpHeld = false;
+  let sprinting = false;
+
   const MOVE_KEYS = {
     KeyW: 1, KeyS: 1, KeyA: 1, KeyD: 1,
     ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1,
@@ -686,6 +769,7 @@ function init(world, base, spawnId, worldPath) {
   function clearKeys() {
     for (const k in keys) keys[k] = false;
     for (const k in edge) edge[k] = false;
+    sprintLatch = false;
   }
 
   // the on-screen controls (quality toggle, overlay buttons) are real focusable elements;
@@ -705,7 +789,7 @@ function init(world, base, spawnId, worldPath) {
   const TOUCH_LOOK_SENSITIVITY = 0.0035;
   const TOUCH_MOVE_DEADZONE = 10; // px, before a left-half drag counts as a direction
 
-  function clearTouches() { moveTouch = null; lookTouch = null; }
+  function clearTouches() { moveTouch = null; lookTouch = null; touchSprint = false; touchJumpHeld = false; }
 
   canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
@@ -751,15 +835,23 @@ function init(world, base, spawnId, worldPath) {
     if (e.key === 'Escape') return; // handled by the overlays / pointer lock
     if (isFormTarget(e.target)) return;
     if (inputLocked) return;
-    if (e.code === 'KeyH') { helpPanel.classList.toggle('hidden'); e.preventDefault(); return; }
+    if (e.code === 'KeyH') { setHelpVisible(helpPanel.classList.contains('hidden')); e.preventDefault(); return; }
     if (e.code === 'Home') { pitch = 0; e.preventDefault(); return; }
     if (e.code === 'KeyE') { interact(); e.preventDefault(); return; }
-    if (e.code in MOVE_KEYS || e.code === 'ShiftLeft' || e.code === 'ShiftRight') e.preventDefault();
+    if (e.code in MOVE_KEYS || e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'ControlLeft' || e.code === 'ControlRight') e.preventDefault();
+    if (e.code === 'KeyW' && !keys.KeyW) {
+      const now = performance.now();
+      if (now - lastWDown < 350) sprintLatch = true;
+      lastWDown = now;
+    }
     if (!keys[e.code] && e.code in TRANSLATE_KEYS) noteKeyPress();
     keys[e.code] = true;
     edge[e.code] = true;
   }, { signal });
-  addEventListener('keyup', (e) => { keys[e.code] = false; }, { signal });
+  addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+    if (e.code === 'KeyW') sprintLatch = false;
+  }, { signal });
   addEventListener('blur', () => { clearKeys(); clearTouches(); }, { signal });
   // coming back to a backgrounded tab must not simulate the minutes it was away: throw
   // the accumulated delta out (and drop any key the browser never sent a keyup for)
@@ -1478,6 +1570,8 @@ function init(world, base, spawnId, worldPath) {
         mounted: mounted ? mounted.def.id : null,
         nearMount: nearMount ? nearMount.def.id : null,
         rideSpeed: +rideSpeed.toFixed(3),
+        sprinting,
+        touchJumpHeld,
         mountsLoaded: mounts.filter((m) => m.ready).length,
         companionsLoaded: companions.filter((c) => c.ready).length,
         companions: companions.map((c) => ({ id: c.def.id, x: +c.x.toFixed(2), z: +c.z.toFixed(2), speed: +c.speed.toFixed(2), wpIndex: c.wpIndex })),
@@ -1582,12 +1676,19 @@ function init(world, base, spawnId, worldPath) {
         fwd += -dy / dist;
         strafe += dx / dist;
       }
+      // Minecraft-PE-style touch sprint: push the move finger well past walking range,
+      // forward-dominant. Releasing the drag drops back to a walk.
+      touchSprint = dist > 130 && -dy > Math.abs(dx);
+    } else {
+      touchSprint = false;
     }
     fwd = Math.max(-1, Math.min(1, fwd));
     strafe = Math.max(-1, Math.min(1, strafe));
 
-    const jumpKey = down('Space') || down('KeyJ');
+    const jumpKey = down('Space') || down('KeyJ') || touchJumpHeld;
     const sinkKey = down('ShiftLeft') || down('ShiftRight');
+    const sprintKey = down('ControlLeft') || down('ControlRight') || sprintLatch || touchSprint;
+    sprinting = !swimming && sprintKey && fwd > 0.1;
 
     // ---------- horizontal movement ----------
     if (fwd || strafe) {
@@ -1597,7 +1698,7 @@ function init(world, base, spawnId, worldPath) {
       if (step.lengthSq() > 0) step.normalize();
       // Shift slows walking on land; underwater it's repurposed as "sink" instead
       const slow = !swimming && sinkKey ? 0.45 : 1;
-      const baseSpeed = swimming ? SWIM_SPEED : SPEED;
+      const baseSpeed = swimming ? SWIM_SPEED : (sprinting ? RUN_SPEED : SPEED);
       const dist = baseSpeed * slow * dt;
       const x0 = pos.x, z0 = pos.z;
       pos.addScaledVector(step, dist);
@@ -1783,6 +1884,7 @@ function init(world, base, spawnId, worldPath) {
 async function boot() {
   await loadChromeStrings(lang);
   localizeStaticChrome();
+  updateFsButton();
   updateTierButton();
   try {
     await loadWorld(startWorldPath, startSpawnId, 'boot');

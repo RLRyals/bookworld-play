@@ -205,6 +205,93 @@ html, body {
   outline-offset: 2px;
 }
 
+/* fullscreen button: same pill family as the quality toggle, stacked above it */
+.fullscreen-toggle {
+  position: fixed;
+  right: 1rem;
+  bottom: 3.2rem;
+  z-index: 20;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: #cdf6e6;
+  background: rgba(4, 10, 12, 0.72);
+  border: 1px solid rgba(47, 230, 164, 0.4);
+  border-radius: 999px;
+  padding: 0.45em 0.95em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.fullscreen-toggle:hover { border-color: rgba(47, 230, 164, 0.8); }
+.fullscreen-toggle:focus-visible {
+  outline: 2px solid #2fe6a4;
+  outline-offset: 2px;
+}
+
+/* touch jump: a thumb-sized target above the corner pills, coarse pointers only */
+.jump-btn {
+  position: fixed;
+  right: 1.1rem;
+  bottom: 6rem;
+  z-index: 20;
+  width: 4.4rem;
+  height: 4.4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  color: #eef6f1;
+  background: rgba(4, 10, 12, 0.6);
+  border: 1px solid rgba(53, 208, 255, 0.55);
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.jump-btn.hidden { display: none; }
+
+/* help-panel dismissal: x in the panel corner, ? floating when the panel is closed */
+.help-close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.45rem;
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: #cdf6e6;
+  background: none;
+  border: none;
+  padding: 0.25em 0.4em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.help-close:focus-visible { outline: 2px solid #2fe6a4; outline-offset: 2px; }
+.help-open {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 20;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  font: inherit;
+  font-size: 0.95rem;
+  color: #cdf6e6;
+  background: rgba(4, 10, 12, 0.72);
+  border: 1px solid rgba(47, 230, 164, 0.4);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.help-open.hidden { display: none; }
+.help-open:focus-visible { outline: 2px solid #2fe6a4; outline-offset: 2px; }
+
+@media (pointer: coarse) {
+  .help-close { font-size: 1.4rem; padding: 0.35em 0.5em; }
+  .help-open { width: 2.8rem; height: 2.8rem; }
+}
+
 /* world-link curtain */
 .fade {
   position: fixed;

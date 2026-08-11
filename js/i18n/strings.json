@@ -42,5 +42,13 @@
   "route.route": "Route",
   "route.checkpoint": "Checkpoint",
   "route.hud": "{label} · {n}/{total} — {cp}",
-  "route.complete": "{label} — complete"
+  "route.complete": "{label} — complete",
+  "controlsSprint": "<b>Ctrl</b> or double-tap <b>W</b> run &middot; on touch, push the move drag farther &middot; fullscreen keeps Ctrl+W in the game",
+  "fullscreen.enter": "Fullscreen",
+  "fullscreen.exit": "Exit fullscreen",
+  "fullscreen.ariaEnter": "Enter fullscreen. Keeps game keys, including Ctrl+W, in the game.",
+  "fullscreen.ariaExit": "Exit fullscreen.",
+  "jump": "Jump",
+  "helpClose": "Close controls",
+  "helpOpen": "Show controls"
 }

@@ -15,15 +15,18 @@
   <ul id="zone-list" class="sr-only" aria-label="Places in this world that do something"></ul>
 
   <div id="walk-help" class="help" tabindex="-1">
+    <button id="help-close" type="button" class="help-close" aria-label="Close controls">&times;</button>
     <p id="help-title" class="help-title">Controls</p>
     <ul>
       <li id="help-wasd"><b>W A S D</b> walk &middot; <b>mouse</b> look (click the view to capture the pointer)</li>
       <li id="help-arrows"><b>Arrow keys</b> walk and turn &middot; <b>R</b>/<b>F</b> look up/down &middot; <b>Home</b> level the view</li>
       <li id="help-jump"><b>Space</b> or <b>J</b> jump &middot; <b>Shift</b> slow (or sink, while swimming) &middot; <b>Esc</b> release pointer / close</li>
+      <li id="help-sprint"><b>Ctrl</b> or double-tap <b>W</b> run &middot; on touch, push the move drag farther &middot; fullscreen keeps Ctrl+W in the game</li>
       <li id="help-interact"><b>E</b> interact &middot; in water: <b>Space/J</b> rise, <b>Shift</b> sink</li>
       <li id="help-hide"><b>H</b> hide or show this panel</li>
     </ul>
   </div>
+  <button id="help-open" type="button" class="help-open hidden" aria-label="Show controls">?</button>
 
   <div id="crosshair" aria-hidden="true"></div>
 
@@ -41,6 +44,13 @@
   <!-- graphics tier: a real button so it is in the tab order and screen-reader operable.
        Cycles auto -> high -> medium -> low; ?tier= locks the same thing from the URL. -->
   <button id="tier-toggle" type="button" class="tier-toggle">Quality: auto</button>
+
+  <!-- fullscreen + Keyboard Lock: in fullscreen, Chromium delivers even Ctrl+W to the
+       game instead of closing the tab (the Minecraft-sprint muscle-memory hazard) -->
+  <button id="fullscreen-toggle" type="button" class="fullscreen-toggle">Fullscreen</button>
+
+  <!-- touch jump: shown only on coarse pointers; Space's on-screen equivalent -->
+  <div id="jump-btn" class="jump-btn hidden" aria-hidden="true">Jump</div>
 
   <!-- world-link transition curtain; the walk engine sets its duration to 0 under
        prefers-reduced-motion so travel is a cut, not a fade -->
@@ -68,6 +78,6 @@
   <script type="importmap">
   { "imports": { "three": "./js/three.module.js" } }
   </script>
-  <script type="module" src="js/walk.js?v=7cf5af1"></script>
+  <script type="module" src="js/walk.js?v=2f3dcf7"></script>
 </body>
 </html>

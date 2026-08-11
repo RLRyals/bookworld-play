@@ -43,5 +43,13 @@
   "route.route": "Ruta",
   "route.checkpoint": "Punto de control",
   "route.hud": "{label} · {n}/{total} — {cp}",
-  "route.complete": "{label} — completada"
+  "route.complete": "{label} — completada",
+  "controlsSprint": "<b>Ctrl</b> o doble toque de <b>W</b> para correr &middot; en táctil, arrastra el dedo más lejos &middot; la pantalla completa mantiene Ctrl+W dentro del juego",
+  "fullscreen.enter": "Pantalla completa",
+  "fullscreen.exit": "Salir de pantalla completa",
+  "fullscreen.ariaEnter": "Entrar en pantalla completa. Mantiene las teclas del juego, incluida Ctrl+W, dentro del juego.",
+  "fullscreen.ariaExit": "Salir de pantalla completa.",
+  "jump": "Saltar",
+  "helpClose": "Cerrar controles",
+  "helpOpen": "Mostrar controles"
 }
