@@ -75,7 +75,7 @@
       "src": "props/cycle.glb",
       "position": [3.2, 0, 3.4],
       "yaw": 0.9,
-      "scale": 2.1,
+      "scale": 2.2,
       "colliderPadding": 0.05
     }
   ],
