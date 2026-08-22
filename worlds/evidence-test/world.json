@@ -1,0 +1,56 @@
+{
+  "id": "evidence-test-room",
+  "defaultLang": "en",
+  "title": "Evidence-cataloging mechanic — engine QA fixture",
+  "description": "A small gray-box room used only to exercise the evidence-cataloging mechanic (BookWorld-5mv): walk to a point, inspect/collect, entry appears in the catalog list. No story canon — engine test data only.",
+  "worldTexture": [
+    "engine QA fixture — not tied to any story canon",
+    "exercises every evidence.json branch: two spatial points (one of them a co-located pair), one equipment item, one non-spatial case fact"
+  ],
+  "spawn": {
+    "position": [0, 0, -0.4],
+    "yaw": 0,
+    "pitch": 0
+  },
+  "player": {
+    "eyeHeight": 1.65,
+    "walkSpeed": 2.8,
+    "radius": 0.45,
+    "stepHeight": 0.4
+  },
+  "palette": {
+    "primary": "#2fe6a4",
+    "accent": "#ff2f6d",
+    "fogColor": "#0a1012",
+    "fogDensity": 0.01
+  },
+  "bounds": {
+    "minX": -3.6,
+    "maxX": 3.6,
+    "minZ": -4.6,
+    "maxZ": 0.6
+  },
+  "geometry": {
+    "seed": 20260822,
+    "envCapture": { "position": [0, 1.6, -2] },
+    "materials": {
+      "wall": { "kind": "flat", "color": "#d9d9d9", "roughness": 0.9 },
+      "ceiling": { "kind": "flat", "color": "#b8b8bd", "roughness": 0.95 },
+      "floor": { "kind": "flat", "color": "#c9b98f", "roughness": 0.95 },
+      "desk": { "kind": "flat", "color": "#8c7359", "roughness": 0.85 },
+      "cabinet": { "kind": "flat", "color": "#6b7c8c", "roughness": 0.8 }
+    },
+    "elements": [
+      { "id": "floor", "type": "plane", "position": [0, 0, -2], "size": [6, 4], "orientation": "horizontal", "material": "floor", "ground": true },
+      { "id": "ceiling", "type": "box", "position": [0, 2.6, -2], "size": [6, 0.06, 4], "material": "ceiling", "collider": false },
+      { "id": "wall-s", "type": "box", "position": [0, 1.3, 0], "size": [6, 2.6, 0.12], "material": "wall" },
+      { "id": "wall-n", "type": "box", "position": [0, 1.3, -4], "size": [6, 2.6, 0.12], "material": "wall" },
+      { "id": "wall-w", "type": "box", "position": [-3, 1.3, -2], "size": [0.12, 2.6, 4], "material": "wall" },
+      { "id": "wall-e", "type": "box", "position": [3, 1.3, -2], "size": [0.12, 2.6, 4], "material": "wall" },
+      { "id": "desk", "type": "box", "position": [1.5, 0.35, -1.5], "size": [0.9, 0.7, 0.5], "material": "desk" },
+      { "id": "cabinet", "type": "box", "position": [-1.5, 0.5, -1.5], "size": [0.6, 1, 0.4], "material": "cabinet" }
+    ]
+  },
+  "triggers": [],
+  "cutscenes": []
+}

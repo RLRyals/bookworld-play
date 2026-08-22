@@ -74,6 +74,10 @@ function localizeStaticChrome() {
   setText('prose-close', 'close');
   document.getElementById('cutscene-overlay')?.setAttribute('aria-label', t('cutscene'));
   setText('cutscene-close', 'closeCutscene');
+  setText('catalog-title', 'catalog.title');
+  setText('catalog-equipment-title', 'catalog.equipmentTitle');
+  setText('catalog-log-title', 'catalog.logTitle');
+  setText('catalog-close', 'close');
 }
 
 async function loadManifest(path) {
@@ -84,6 +88,28 @@ async function loadManifest(path) {
 
 function manifestBase(path) {
   return path.slice(0, path.lastIndexOf('/') + 1);
+}
+
+// ---------- evidence-cataloging data pack (BookWorld-5mv) ----------
+// Convention, not config: if a world's own folder also contains an `evidence.json` sibling
+// to its `world.json`, the engine loads it automatically — zero changes to world.json (which
+// a story repo may keep locked/read-only) and zero engine wiring per pack. A pack with no
+// evidence.json is unaffected: the fetch 404s once, quietly, exactly like a missing
+// text.<lang>.json locale overlay already does (js/i18n.js's fetchJson). Schema: see
+// worlds/evidence-test/evidence.json (engine fixture) — `items[]` of
+// { id, name, itemType: "evidence"|"equipment", position: {coordinates:[x,y,z]}|null,
+//   catalogEntry, representation?: "non-spatial" }. The engine never interprets `name` or
+// `catalogEntry` beyond displaying them — no story content lives in this file.
+const evidenceCache = new Map(); // base -> parsed evidence.json | null
+async function loadEvidencePack(base) {
+  if (evidenceCache.has(base)) return evidenceCache.get(base);
+  let data = null;
+  try {
+    const res = await fetch(base + 'evidence.json');
+    if (res.ok) data = await res.json();
+  } catch (_) { /* no evidence pack for this world — not an error */ }
+  evidenceCache.set(base, data);
+  return data;
 }
 
 function showLoadError(message) {
@@ -452,9 +478,10 @@ async function loadWorld(path, spawnId, why) {
     manifestCache.set(path, world);
   }
   const manifestMs = performance.now() - tManifest0;
+  const evidence = await loadEvidencePack(manifestBase(path));
 
   if (session) session.destroy();
-  session = init(world, manifestBase(path), spawnId, path);
+  session = init(world, manifestBase(path), spawnId, path, evidence);
   await session.firstFrame;
   const readyMs = performance.now() - t0;
 
@@ -500,12 +527,42 @@ window.__bookworldSession = {
 // ============================================================================
 // One world
 // ============================================================================
-function init(world, base, spawnId, worldPath) {
+function init(world, base, spawnId, worldPath, evidence) {
   document.title = world.title || 'BookWorld';
   const loadWarnings = []; // non-fatal pack-asset failures (a texture/prop/sky that 404s)
   const listeners = new AbortController();   // every listener below dies with the world
   const signal = listeners.signal;
   let destroyed = false;
+
+  // ---------- evidence-cataloging data (BookWorld-5mv) ----------
+  // Pure data prep, no DOM yet — grouped here so both the a11y zone inventory below and the
+  // walk-up zones further down (and the catalog HUD/list, wired once the overlays exist) read
+  // from the same shapes. A pack with no evidence.json produces empty arrays everywhere and
+  // every branch below becomes a no-op, so existing packs (world-a/b, everbrook, oakridge-
+  // patrol) render and play byte-identically to before this bead.
+  const evidenceItems = (evidence && Array.isArray(evidence.items)) ? evidence.items : [];
+  // "equipment" is player-carried per the schema ruling (BookWorld-5mv bead notes) — never a
+  // world point, surfaced as read-only HUD/equipment info only.
+  const equipmentItems = evidenceItems.filter((it) => it.itemType === 'equipment');
+  const catalogableItems = evidenceItems.filter((it) => it.itemType !== 'equipment');
+  // Items that share a world position (within a few cm) are grouped into ONE walk-up point —
+  // this is how "inspecting the body reveals co-located sub-entries" (subdermal marking,
+  // tissue) generalizes with zero item-id-specific code: any pack that co-locates evidence
+  // gets the same one-interaction reveal, driven purely by matching coordinates.
+  const POSITION_EPSILON = 0.05;
+  const spatialGroups = []; // [{ pos:[x,y,z], items:[...] }]
+  for (const it of catalogableItems) {
+    const c = it.position && it.position.coordinates;
+    if (!Array.isArray(c)) continue;
+    let group = spatialGroups.find((g) => Math.abs(g.pos[0] - c[0]) <= POSITION_EPSILON && Math.abs(g.pos[2] - c[2]) <= POSITION_EPSILON);
+    if (!group) { group = { pos: c, items: [] }; spatialGroups.push(group); }
+    group.items.push(it);
+  }
+  // Non-spatial items (representation:"non-spatial", position:null) never get a walk-up
+  // point; first-version trigger per the bead notes is "when all spatial evidence is
+  // catalogued" — evaluated in checkSceneComplete() once the catalog subsystem exists below.
+  const nonSpatialItems = catalogableItems.filter((it) => it.representation === 'non-spatial' || !it.position);
+  const spatialCatalogableItems = catalogableItems.filter((it) => !(it.representation === 'non-spatial' || !it.position));
 
   // ---------- a11y: description + zone inventory, both manifest-driven ----------
   document.getElementById('scene-description').textContent = world.description || '';
@@ -515,6 +572,12 @@ function init(world, base, spawnId, worldPath) {
     const li = document.createElement('li');
     const how = trig.mode === 'auto' ? t('zoneHintAuto') : t('zoneHintPrompted');
     li.textContent = `${trig.label}: ${trig.srHint || ''} (${how})`.replace(/\s+/g, ' ').trim();
+    zoneList.appendChild(li);
+  });
+  spatialGroups.forEach((group) => {
+    const primary = group.items[0];
+    const li = document.createElement('li');
+    li.textContent = `${primary.name || primary.id}: ${primary.description || ''} (${t('zoneHintPrompted')})`.replace(/\s+/g, ' ').trim();
     zoneList.appendChild(li);
   });
   const status = statusEl;
@@ -534,6 +597,12 @@ function init(world, base, spawnId, worldPath) {
     rideHelpLi = document.createElement('li');
     rideHelpLi.innerHTML = t('controlsRiding');
     helpList.appendChild(rideHelpLi);
+  }
+  let catalogHelpLi = null;
+  if (catalogableItems.length) {
+    catalogHelpLi = document.createElement('li');
+    catalogHelpLi.innerHTML = t('controlsCatalog');
+    helpList.appendChild(catalogHelpLi);
   }
 
   // on-screen jump button — the touch equivalent of Space (jump on land, rise in water)
@@ -836,6 +905,7 @@ function init(world, base, spawnId, worldPath) {
     if (isFormTarget(e.target)) return;
     if (inputLocked) return;
     if (e.code === 'KeyH') { setHelpVisible(helpPanel.classList.contains('hidden')); e.preventDefault(); return; }
+    if (e.code === 'KeyC') { if (catalogableItems.length) openCatalog(); e.preventDefault(); return; }
     if (e.code === 'Home') { pitch = 0; e.preventDefault(); return; }
     if (e.code === 'KeyE') { interact(); e.preventDefault(); return; }
     if (e.code in MOVE_KEYS || e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'ControlLeft' || e.code === 'ControlRight') e.preventDefault();
@@ -908,6 +978,11 @@ function init(world, base, spawnId, worldPath) {
   const cutsceneOverlay = document.getElementById('cutscene-overlay');
   const cutsceneVideo = document.getElementById('cutscene-video');
   const cutsceneClose = document.getElementById('cutscene-close');
+  const catalogHud = document.getElementById('catalog-hud');
+  const catalogOverlay = document.getElementById('catalog-overlay');
+  const catalogListEl = document.getElementById('catalog-list');
+  const catalogEquipEl = document.getElementById('catalog-equipment');
+  const catalogClose = document.getElementById('catalog-close');
 
   let resumeState = null;
   function suspendWalk() {
@@ -985,10 +1060,116 @@ function init(world, base, spawnId, worldPath) {
   cutsceneClose.addEventListener('click', closeCutscene, { signal });
   cutsceneOverlay.addEventListener('click', (e) => { if (e.target === cutsceneOverlay) closeCutscene(); }, { signal });
 
+  // ---------- evidence catalog: walk-up prompt reuses openProse for the inspect result
+  // (same suspend/resume/Escape idiom already built for room prose); the catalog itself is a
+  // second, persistent overlay (toggle key C) so a player can review everything logged so far
+  // without re-walking the scene. Nothing here is Arcane-specific — it only reads the generic
+  // id/name/itemType/catalogEntry/representation fields the schema defines.
+  const cataloged = new Map(); // item.id -> item, insertion order = catalog order
+
+  function updateCatalogHud() {
+    if (!catalogHud) return;
+    if (!catalogableItems.length) { catalogHud.classList.add('hidden'); return; }
+    catalogHud.classList.remove('hidden');
+    catalogHud.textContent = t('catalog.hud', { n: cataloged.size, total: catalogableItems.length });
+    catalogHud.setAttribute('aria-label', t('catalog.hudAria', { n: cataloged.size, total: catalogableItems.length }));
+  }
+
+  function renderCatalogList() {
+    if (catalogListEl) {
+      catalogListEl.innerHTML = '';
+      if (!cataloged.size) {
+        const li = document.createElement('li');
+        li.className = 'catalog-empty';
+        li.textContent = t('catalog.empty');
+        catalogListEl.appendChild(li);
+      } else {
+        for (const item of cataloged.values()) {
+          const li = document.createElement('li');
+          const strong = document.createElement('strong');
+          strong.textContent = item.name || item.id;
+          li.appendChild(strong);
+          const p = document.createElement('p');
+          p.textContent = item.catalogEntry || '';
+          li.appendChild(p);
+          catalogListEl.appendChild(li);
+        }
+      }
+    }
+    if (catalogEquipEl) {
+      catalogEquipEl.innerHTML = '';
+      if (equipmentItems.length) {
+        catalogEquipEl.closest('.catalog-equip-block')?.classList.remove('hidden');
+        for (const eq of equipmentItems) {
+          const li = document.createElement('li');
+          li.textContent = eq.name || eq.id;
+          catalogEquipEl.appendChild(li);
+        }
+      } else {
+        catalogEquipEl.closest('.catalog-equip-block')?.classList.add('hidden');
+      }
+    }
+  }
+
+  function addToCatalog(item) {
+    if (!item || cataloged.has(item.id)) return false;
+    cataloged.set(item.id, item);
+    return true;
+  }
+
+  // First-version rule from the bead notes: the non-spatial case fact reveals once every
+  // SPATIAL evidence item is logged. Surfaced as a non-modal radio-style toast (the engine
+  // already has exactly this "a passing line, never a modal" idiom for the patrol route) plus
+  // a permanent catalog-list entry — not a second stacked modal.
+  function checkSceneComplete() {
+    if (!nonSpatialItems.length) return;
+    if (!spatialCatalogableItems.every((it) => cataloged.has(it.id))) return;
+    let any = false;
+    for (const ns of nonSpatialItems) {
+      if (addToCatalog(ns)) {
+        any = true;
+        radioToast(ns.catalogEntry || ns.name || '');
+        announce(t('catalog.caseFact', { name: ns.name || ns.id }));
+      }
+    }
+    if (any) { renderCatalogList(); updateCatalogHud(); }
+  }
+
+  function catalogEvidenceGroup(items) {
+    const added = [];
+    for (const it of items || []) if (addToCatalog(it)) added.push(it);
+    if (!added.length) return;
+    renderCatalogList();
+    updateCatalogHud();
+    openProse(added.map((it) => `${it.name || it.id}\n${it.catalogEntry || ''}`).join('\n\n'));
+    announce(t('catalog.added', { n: added.length }));
+    checkSceneComplete();
+  }
+
+  function openCatalog() {
+    if (!catalogOverlay || !catalogableItems.length) return;
+    suspendWalk();
+    renderCatalogList();
+    catalogOverlay.classList.remove('hidden');
+    catalogClose && catalogClose.focus();
+  }
+  function closeCatalogOverlay() {
+    if (!catalogOverlay || catalogOverlay.classList.contains('hidden')) return;
+    catalogOverlay.classList.add('hidden');
+    resumeWalk();
+  }
+  catalogClose && catalogClose.addEventListener('click', closeCatalogOverlay, { signal });
+  catalogHud && catalogHud.addEventListener('click', openCatalog, { signal });
+  catalogOverlay && catalogOverlay.addEventListener('click', (e) => { if (e.target === catalogOverlay) closeCatalogOverlay(); }, { signal });
+
+  renderCatalogList();
+  updateCatalogHud();
+
   addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!cutsceneOverlay.classList.contains('hidden')) { closeCutscene(); e.preventDefault(); }
     else if (!proseOverlay.classList.contains('hidden')) { closeProse(); e.preventDefault(); }
+    else if (catalogOverlay && !catalogOverlay.classList.contains('hidden')) { closeCatalogOverlay(); e.preventDefault(); }
   }, { signal });
 
   // ---------- trigger zones (all manifest data) ----------
@@ -1016,6 +1197,37 @@ function init(world, base, spawnId, worldPath) {
     spawnSuppressed: false,
     preloadStarted: false
   }));
+
+  // Evidence walk-up points are synthetic zones, not pack `triggers` — built from
+  // evidence.json rather than world.json (which a story repo may keep locked). They reuse the
+  // exact same zone shape/lifecycle as a manifest trigger, so zoneContains/updateZones/fire/
+  // interact need no evidence-specific branching beyond fire()'s trig.type === 'evidence'.
+  const EVIDENCE_RADIUS = 1.1;
+  spatialGroups.forEach((group) => {
+    const primary = group.items[0];
+    const def = {
+      id: `evidence-${primary.id}`,
+      label: primary.name || primary.id,
+      mode: 'prompted',
+      shape: 'radius',
+      position: group.pos,
+      radius: EVIDENCE_RADIUS,
+      prompt: t('catalog.inspectPrompt'),
+      srHint: primary.description || '',
+      once: true,
+      trigger: { type: 'evidence', items: group.items }
+    };
+    zones.push({
+      def,
+      pos: resolveTriggerPosition(def),
+      inside: false,
+      armed: true,
+      fired: false,
+      spawnSuppressed: false,
+      preloadStarted: false
+    });
+  });
+
   let activeZone = null;
 
   function zoneContains(z, x, zz) {
@@ -1483,6 +1695,7 @@ function init(world, base, spawnId, worldPath) {
     z.armed = false; // auto zones re-arm only when the player leaves (and not if `once`)
     if (trig.type === 'prose') openProse(trig.text || '');
     else if (trig.type === 'cutscene') playCutscene(trig.cutsceneId);
+    else if (trig.type === 'evidence') catalogEvidenceGroup(trig.items);
     else if (trig.type === 'link') {
       if (!trig.toWorld) { announce(t('linkMissingDestination', { label: z.def.label })); return; }
       travelTo(trig.toWorld, trig.spawn, base);
@@ -1641,6 +1854,13 @@ function init(world, base, spawnId, worldPath) {
         cutsceneOpen: !cutsceneOverlay.classList.contains('hidden'),
         cutsceneSrc: cutsceneVideo.getAttribute('src'),
         proseOpen: !proseOverlay.classList.contains('hidden'),
+        catalogOpen: !!(catalogOverlay && !catalogOverlay.classList.contains('hidden')),
+        catalog: {
+          total: catalogableItems.length,
+          logged: cataloged.size,
+          ids: [...cataloged.keys()],
+          equipment: equipmentItems.map((eq) => eq.id)
+        },
         inputLocked,
         moveTouchActive: !!moveTouch,
         lookTouchActive: !!lookTouch,
@@ -1914,10 +2134,13 @@ function init(world, base, spawnId, worldPath) {
     listeners.abort();
     if (touchHelpLi && touchHelpLi.parentNode) touchHelpLi.parentNode.removeChild(touchHelpLi);
     if (rideHelpLi && rideHelpLi.parentNode) rideHelpLi.parentNode.removeChild(rideHelpLi);
+    if (catalogHelpLi && catalogHelpLi.parentNode) catalogHelpLi.parentNode.removeChild(catalogHelpLi);
     cutsceneVideo.pause();
     cutsceneVideo.removeAttribute('src');
     cutsceneOverlay.classList.add('hidden');
     proseOverlay.classList.add('hidden');
+    if (catalogOverlay) catalogOverlay.classList.add('hidden');
+    if (catalogHud) { catalogHud.classList.add('hidden'); catalogHud.textContent = ''; }
     promptEl.classList.add('hidden');
     promptEl.textContent = '';
     clearTimeout(radioTimer);

@@ -1,0 +1,48 @@
+{
+  "id": "evidence-test-pack",
+  "world": "evidence-test-room",
+  "description": "Engine QA fixture for BookWorld-5mv's evidence-cataloging mechanic. Exercises every branch the schema supports: a co-located spatial pair (auto-merged into one walk-up point, testing the 'inspecting reveals sub-entries' behaviour), a standalone spatial item, a carried-equipment item (never a world point), and a non-spatial case fact that reveals once all spatial evidence is logged. No story content — the text below is deliberately generic.",
+  "items": [
+    {
+      "id": "test-item-a",
+      "name": "Test artifact A",
+      "itemType": "evidence",
+      "description": "A gray-box desk prop, used as the primary item in a co-located pair.",
+      "position": { "room": "room-a", "coordinates": [1.5, 0, -1.5] },
+      "catalogEntry": "Artifact A logged: desk-top item, no further detail."
+    },
+    {
+      "id": "test-item-a-detail",
+      "name": "Test artifact A — close detail",
+      "itemType": "evidence",
+      "description": "Co-located with test-item-a; should surface as a sub-entry from the SAME walk-up interaction, not a separate point.",
+      "position": { "room": "room-a", "coordinates": [1.5, 0, -1.5], "bodyRegion": "co-located test" },
+      "catalogEntry": "Detail sub-entry revealed alongside artifact A."
+    },
+    {
+      "id": "test-item-b",
+      "name": "Test artifact B",
+      "itemType": "evidence",
+      "description": "A gray-box cabinet prop, a standalone (non-co-located) spatial item.",
+      "position": { "room": "room-a", "coordinates": [-1.5, 0, -1.5] },
+      "catalogEntry": "Artifact B logged: cabinet item."
+    },
+    {
+      "id": "test-equipment",
+      "name": "Test kit (carried)",
+      "itemType": "equipment",
+      "description": "Player-carried equipment per the schema ruling — never a walk-to-inspect point, surfaced as HUD/equipment info only.",
+      "position": null,
+      "catalogEntry": null
+    },
+    {
+      "id": "test-case-fact",
+      "name": "Scene-complete case fact",
+      "itemType": "evidence",
+      "description": "Non-spatial case fact; reveals as a HUD toast + catalog entry once all spatial evidence (test-item-a, test-item-a-detail, test-item-b) is logged.",
+      "position": null,
+      "representation": "non-spatial",
+      "catalogEntry": "All spatial evidence catalogued in this room — case fact revealed."
+    }
+  ]
+}

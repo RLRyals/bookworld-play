@@ -50,5 +50,15 @@
   "fullscreen.ariaExit": "Exit fullscreen.",
   "jump": "Jump",
   "helpClose": "Close controls",
-  "helpOpen": "Show controls"
+  "helpOpen": "Show controls",
+  "controlsCatalog": "<b>C</b> open the case catalog",
+  "catalog.hud": "Catalog: {n}/{total}",
+  "catalog.hudAria": "Case catalog, {n} of {total} logged. Activate to open.",
+  "catalog.inspectPrompt": "Press E — Inspect",
+  "catalog.empty": "Nothing catalogued yet. Walk up to a piece of evidence and press E.",
+  "catalog.added": "Logged {n} item(s) to the catalog.",
+  "catalog.caseFact": "New case fact logged: {name}",
+  "catalog.title": "Case catalog",
+  "catalog.equipmentTitle": "Equipment carried",
+  "catalog.logTitle": "Logged"
 }

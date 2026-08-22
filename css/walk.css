@@ -168,6 +168,28 @@ html, body {
 @keyframes radio-in { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .radio { animation: none; } }
 
+/* evidence-catalog HUD pill (BookWorld-5mv): top-left, quiet until there is something to
+   show — a real button (not a status pill) since it is the touch equivalent of pressing C */
+.catalog-hud {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 20;
+  font: inherit;
+  padding: 0.35em 1em;
+  border-radius: 999px;
+  background: rgba(4, 10, 12, 0.72);
+  border: 1px solid rgba(47, 230, 164, 0.4);
+  color: #cdf6e6;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.catalog-hud.hidden { display: none; }
+.catalog-hud:hover { border-color: rgba(47, 230, 164, 0.8); }
+.catalog-hud:focus-visible { outline: 2px solid #2fe6a4; outline-offset: 2px; }
+
 .fps {
   position: fixed;
   right: 1rem;
@@ -325,6 +347,7 @@ html, body {
 }
 
 #prose-close,
+#catalog-close,
 .corner-close {
   margin-top: 1em;
   background: #2fe6a4;
@@ -343,6 +366,43 @@ html, body {
   top: 1.2rem;
   margin: 0;
 }
+
+/* evidence catalog list (BookWorld-5mv): reuses .overlay/.overlay-panel, adds a scrollable
+   body so a long case doesn't overflow the panel */
+.catalog-panel {
+  text-align: left;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.catalog-title {
+  margin: 0 0 0.6em;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2fe6a4;
+}
+.catalog-section-title {
+  margin: 1em 0 0.4em;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9fd8c2;
+}
+.catalog-equip-block.hidden { display: none; }
+.catalog-list, .catalog-equipment {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.catalog-list li {
+  padding: 0.6em 0;
+  border-top: 1px solid rgba(47, 230, 164, 0.16);
+}
+.catalog-list li:first-child { border-top: none; }
+.catalog-list li strong { color: #cdf6e6; }
+.catalog-list li p { margin: 0.3em 0 0; font-size: 0.9rem; }
+.catalog-list .catalog-empty { color: #9fb6ac; font-style: italic; }
+.catalog-equipment li { padding: 0.2em 0; font-size: 0.9rem; color: #cdf6e6; }
 
 #cutscene-overlay { background: #000; }
 

@@ -51,5 +51,15 @@
   "fullscreen.ariaExit": "Salir de pantalla completa.",
   "jump": "Saltar",
   "helpClose": "Cerrar controles",
-  "helpOpen": "Mostrar controles"
+  "helpOpen": "Mostrar controles",
+  "controlsCatalog": "<b>C</b> abrir el catálogo del caso",
+  "catalog.hud": "Catálogo: {n}/{total}",
+  "catalog.hudAria": "Catálogo del caso, {n} de {total} registrados. Actívalo para abrir.",
+  "catalog.inspectPrompt": "Presiona E — Inspeccionar",
+  "catalog.empty": "Nada registrado todavía. Acércate a una evidencia y presiona E.",
+  "catalog.added": "Se registraron {n} elemento(s) en el catálogo.",
+  "catalog.caseFact": "Nuevo hecho del caso registrado: {name}",
+  "catalog.title": "Catálogo del caso",
+  "catalog.equipmentTitle": "Equipo transportado",
+  "catalog.logTitle": "Registrado"
 }

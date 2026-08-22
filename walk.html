@@ -39,6 +39,10 @@
   <div id="route-hud" class="route-hud hidden" aria-hidden="true"></div>
   <div id="radio" class="radio hidden" aria-hidden="true"></div>
 
+  <!-- evidence-cataloging HUD (BookWorld-5mv): a pack-driven pill, hidden unless the loaded
+       world has a sibling evidence.json. Click/tap it or press C to open the full catalog. -->
+  <button id="catalog-hud" type="button" class="catalog-hud hidden">Catalog: 0/0</button>
+
   <div id="fps-readout" class="fps hidden" aria-hidden="true"></div>
 
   <!-- graphics tier: a real button so it is in the tab order and screen-reader operable.
@@ -69,6 +73,19 @@
     <button id="cutscene-close" type="button" class="corner-close">Close cutscene</button>
   </div>
 
+  <div id="catalog-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="catalog-title">
+    <div class="overlay-panel catalog-panel">
+      <p id="catalog-title" class="catalog-title">Case catalog</p>
+      <div class="catalog-equip-block hidden">
+        <p class="catalog-section-title" id="catalog-equipment-title">Equipment carried</p>
+        <ul id="catalog-equipment" class="catalog-equipment"></ul>
+      </div>
+      <p class="catalog-section-title" id="catalog-log-title">Logged</p>
+      <ul id="catalog-list" class="catalog-list"></ul>
+      <button id="catalog-close" type="button">Close</button>
+    </div>
+  </div>
+
   <div id="load-error" class="overlay hidden" role="alert">
     <div class="overlay-panel">
       <p id="load-error-text"></p>
@@ -78,6 +95,6 @@
   <script type="importmap">
   { "imports": { "three": "./js/three.module.js" } }
   </script>
-  <script type="module" src="js/walk.js?v=800a278"></script>
+  <script type="module" src="js/walk.js?v=e52c3ec"></script>
 </body>
 </html>
