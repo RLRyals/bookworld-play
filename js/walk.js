@@ -635,6 +635,12 @@ function init(world, base, spawnId, worldPath, evidence) {
     warn: (msg) => { console.warn('[bookworld] ' + msg); loadWarnings.push(msg); }
   });
   const colliders = built.colliders;
+  // The superset capCeiling reads from (BookWorld-zsx ceiling fix) — every box element's
+  // AABB, including ones the pack excluded from horizontal collision (`collider: false`,
+  // used for thin/overhead dressing and, per this bead's FINDINGS, ch1-apartment's own
+  // ceiling slab). See the comment on `overheadSolids` in geometry.js for why the two
+  // lists must stay separate rather than just widening `colliders` itself.
+  const overheadSolids = built.overheadSolids || colliders;
   const bounds = built.bounds;
   const waterVolumes = built.waterVolumes || [];
   const baseFogColor = built.atmosphere.fog.color.clone();
@@ -690,6 +696,18 @@ function init(world, base, spawnId, worldPath, evidence) {
   const SWIM_DAMPING = 0.9; // per-second-normalised velocity decay while swimming, no input
   const respawnCfg = world.respawn || {};
   const RESPAWN_Y = respawnCfg.fallY == null ? -25 : respawnCfg.fallY;
+  // The upper twin of RESPAWN_Y (BookWorld-zsx: "jump onto the roof and get stuck
+  // outside the apartment"). capCeiling is the PRIMARY fix — it stops a jump from ever
+  // punching through a room's ceiling — but the bead's own acceptance bar is escape must
+  // be impossible OR auto-recovered, so this is the backstop for any OTHER way up there
+  // (a furniture stair-step chain, a future pack, a physics corner case): a margin above
+  // the tallest thing in the world that a normal jump/climb could never reach, but that
+  // still catches a truly out-of-bounds player and pulls them back rather than leaving a
+  // stuck state reachable. Pack-agnostic by construction — an outdoor world with tall
+  // buildings gets a proportionally generous ceiling for free; `respawn.ceilingY`
+  // overrides it explicitly if a pack ever needs to.
+  const maxColliderTop = colliders.reduce((m, c) => Math.max(m, c.maxY), 0);
+  const WORLD_CEILING_Y = respawnCfg.ceilingY == null ? maxColliderTop + 4 : respawnCfg.ceilingY;
 
   // Per-mode body values (BookWorld-898 FINDINGS: a mount has a different radius and a
   // different — usually smaller — step allowance than feet, so the collision helpers read
@@ -708,6 +726,12 @@ function init(world, base, spawnId, worldPath, evidence) {
   let pitch = spawn.pitch || 0;
   let smoothYaw = yaw, smoothPitch = pitch;
   let bobPhase = 0, bobY = 0, bobRoll = 0;
+  // Last known-good grounded position, refreshed every frame the player is NOT out of
+  // bounds — what checkVerticalBounds() restores to, so recovery is "back where you
+  // just were", never a jarring reset to spawn (respawn() below, the fall-catch, still
+  // resets to spawn — falling through the floor into the void has no other "nearby" to
+  // return to; getting stuck above a ceiling does).
+  const lastSafe = { x: spawnPos[0], z: spawnPos[2], feetY: 0 };
 
   // ---------- vertical helpers ----------
   function findWaterAt(x, z) {
@@ -776,12 +800,16 @@ function init(world, base, spawnId, worldPath, evidence) {
     p.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, p.z));
   }
 
-  // caps a rising feetY against the underside of any collider whose footprint the
-  // player currently occupies — "no head-through-ceiling"
+  // caps a rising feetY against the underside of any OVERHEAD SOLID whose footprint the
+  // player currently occupies — "no head-through-ceiling". Reads `overheadSolids`, not
+  // `colliders`: a pack's ceiling slab is commonly `collider: false` (it must never block
+  // walking under it), but that must not also mean a jump can punch a hole clean through
+  // it (BookWorld-zsx: this is the ceiling/roof play-test bug — a 1.1 m default jump
+  // apex plus body height clips through a ~2.7 m room even though every wall is solid).
   function capCeiling(newFeetY) {
     if (newFeetY <= feetY) return newFeetY;
-    for (let i = 0; i < colliders.length; i++) {
-      const c = colliders[i];
+    for (let i = 0; i < overheadSolids.length; i++) {
+      const c = overheadSolids[i];
       if (!(pos.x > c.minX && pos.x < c.maxX && pos.z > c.minZ && pos.z < c.maxZ)) continue;
       if (c.minY > feetY && c.minY < newFeetY + BODY_HEIGHT) {
         const capped = c.minY - BODY_HEIGHT;
@@ -795,6 +823,25 @@ function init(world, base, spawnId, worldPath, evidence) {
     pos.x = spawnPos[0]; pos.z = spawnPos[2];
     feetY = 0; vy = 0; grounded = true; swimming = false; currentWater = null;
     announce(t('fellOutOfWorld'));
+  }
+
+  // The upper-bound twin of respawn()'s fall-catch (BookWorld-zsx requirement 2: roof/
+  // out-of-bounds escape "must be impossible OR auto-recovered... never a hard stuck
+  // state"). Called once per rendered frame from frame(), after this frame's substeps
+  // have all run, so it catches the mounted path too without duplicating the check
+  // inside stepRide(). Below WORLD_CEILING_Y it just refreshes lastSafe (only while
+  // grounded/swimming — never mid-jump, so a legitimate apex never gets latched as a
+  // "safe" spot to snap back to); at or above it, it pulls the player back to the last
+  // place they were legitimately standing.
+  function checkVerticalBounds() {
+    if (feetY > WORLD_CEILING_Y) {
+      pos.x = lastSafe.x; pos.z = lastSafe.z; feetY = lastSafe.feetY;
+      vy = 0; grounded = true; swimming = false; currentWater = null;
+      resolveHorizontal(pos, feetY);
+      announce(t('outOfBounds'));
+    } else if (grounded || swimming) {
+      lastSafe.x = pos.x; lastSafe.z = pos.z; lastSafe.feetY = feetY;
+    }
   }
 
   resolveHorizontal(pos, feetY);
@@ -1227,6 +1274,52 @@ function init(world, base, spawnId, worldPath, evidence) {
       preloadStarted: false
     });
   });
+
+  // ---------- doors: closed geometry blocks until opened via E (BookWorld-zsx) ----------
+  // Generic, naming-convention-driven so it works on ANY pack with zero engine wiring per
+  // pack: a world.json box element whose id starts with "door-" AND is an active collider
+  // (`collider !== false` — the pack's own default) is registered as a door. It starts
+  // CLOSED — that's just its ordinary collider, already blocking — and stays closed until
+  // the player is within reach and presses E, at which point it opens permanently: the
+  // collider is pulled from `colliders` (stops blocking movement) and its mesh is hidden
+  // (the doorway reads as clear — "visibly open" per the bead's own acceptance wording; a
+  // full swing/slide animation is explicitly out of scope, "no full door-animation
+  // system"). The collider requirement isn't incidental: world-a's `door-panel` /
+  // `link-door-panel` (FOUND during this bead's regression pass) already use the same
+  // "door-" prefix for purely decorative, non-colliding shopfront dressing that a
+  // `trigger.anchor` points at for its own cutscene/link — without this filter those
+  // would get hijacked into a dead "Open door" prompt that shadows the real trigger. A
+  // pack that wants an ALREADY-open doorway just omits a door-* element there, or sets
+  // `collider: false` on it like world-a already does — no second naming convention
+  // needed. This is the convention posted to arc-aq4 (Series-lane ch1-apartment
+  // laundry-door work): any COLLIDING `door-<name>` box id just works.
+  const DOOR_REACH = 1.6;
+  const doors = ((world.geometry && world.geometry.elements) || [])
+    .filter((el) => el.type === 'box' && /^door-/i.test(el.id) && el.collider !== false)
+    .map((el) => {
+      const size = el.size || [1, 1, 1];
+      return {
+        id: el.id,
+        x: el.position[0], z: el.position[2],
+        reach: DOOR_REACH + Math.max(size[0], size[2]) / 2,
+        collider: colliders.find((c) => c.label === el.id) || null,
+        mesh: built.meshesById ? built.meshesById[el.id] : null,
+        open: false
+      };
+    });
+
+  function openDoor(door) {
+    if (!door || door.open) return;
+    door.open = true;
+    if (door.collider) {
+      const i = colliders.indexOf(door.collider);
+      if (i >= 0) colliders.splice(i, 1);
+    }
+    if (door.mesh) door.mesh.visible = false;
+    announce(t('door.opened'));
+  }
+
+  let nearDoor = null;
 
   let activeZone = null;
 
@@ -1710,6 +1803,7 @@ function init(world, base, spawnId, worldPath, evidence) {
   function interact() {
     if (mounted) { dismount(); return; }
     if (nearMount) { mountUp(nearMount); return; }
+    if (nearDoor) { openDoor(nearDoor); return; }
     if (!activeZone) return;
     if (activeZone.def.once && activeZone.fired) {
       announce(t('nothingMoreHere', { label: activeZone.def.label }));
@@ -1763,6 +1857,22 @@ function init(world, base, spawnId, worldPath, evidence) {
       }
     }
 
+    // closed doors, checked whenever the player isn't riding (dismounting through a
+    // closed door isn't a case worth handling). Nearest-in-reach, not first-in-reach: a
+    // hallway with several doors' generous reach circles overlapping (ch1-apartment's
+    // hall closet/laundry/bath doors are all within ~1m of each other) must prompt for
+    // the door the player is actually standing at, not whichever happens to list first.
+    nearDoor = null;
+    if (!mounted) {
+      let bestD2 = Infinity;
+      for (const d of doors) {
+        if (d.open) continue;
+        const dx = pos.x - d.x, dz = pos.z - d.z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 <= d.reach * d.reach && d2 < bestD2) { nearDoor = d; bestD2 = d2; }
+      }
+    }
+
     if (mounted) {
       if (Math.abs(rideSpeed) < 1.2) {
         promptEl.textContent = mounted.def.dismountPrompt || t('ride.dismountPrompt');
@@ -1773,6 +1883,9 @@ function init(world, base, spawnId, worldPath, evidence) {
       }
     } else if (nearMount) {
       promptEl.textContent = nearMount.def.prompt || t('ride.prompt');
+      promptEl.classList.remove('hidden');
+    } else if (nearDoor) {
+      promptEl.textContent = t('door.openPrompt');
       promptEl.classList.remove('hidden');
     } else if (prompted && !(prompted.def.once && prompted.fired)) {
       promptEl.textContent = prompted.def.prompt || t('pressE');
@@ -1840,6 +1953,8 @@ function init(world, base, spawnId, worldPath, evidence) {
         activeZone: activeZone ? activeZone.def.id : null,
         mounted: mounted ? mounted.def.id : null,
         nearMount: nearMount ? nearMount.def.id : null,
+        nearDoor: nearDoor ? nearDoor.id : null,
+        doors: doors.map((d) => ({ id: d.id, open: d.open })),
         rideSpeed: +rideSpeed.toFixed(3),
         sprinting,
         touchJumpHeld,
@@ -2049,6 +2164,7 @@ function init(world, base, spawnId, worldPath, evidence) {
       const steps = Math.max(1, Math.min(MAX_SUBSTEPS, Math.ceil(dt / MAX_SUBSTEP)));
       const sub = dt / steps;
       for (let i = 0; i < steps; i++) stepPlayer(sub);
+      checkVerticalBounds();
       updateZones();
       updateRoute();
       updateCompanions(dt);

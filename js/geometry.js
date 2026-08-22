@@ -244,7 +244,18 @@ function buildMaterialInner(def, sizeHint, ctx) {
       const params = {
         color: def.color || '#808080',
         roughness: def.roughness == null ? 0.8 : def.roughness,
-        metalness: def.metalness == null ? 0.1 : def.metalness
+        metalness: def.metalness == null ? 0.1 : def.metalness,
+        // Blockout packs routinely butt geometry flush against itself — a countertop
+        // overhang resting exactly on its cabinet's top face, walls overlapping a few cm
+        // at a corner seam (BookWorld-zsx FINDINGS: ch1-apartment's counter-north/
+        // countertop-north share the identical y=0.92 plane). Those coincident faces
+        // z-fight under WebGL's finite depth-buffer precision — a flickering seam that
+        // reads as "the level glitches a bit". Polygon offset is the standard, near-free
+        // GPU-side fix; applied to every flat (blockout) material rather than editing
+        // pack geometry the engine may not own (a story repo's world.json is read-only).
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1
       };
       if (def.emissive) { params.emissive = new THREE.Color(def.emissive); params.emissiveIntensity = def.emissiveIntensity == null ? 1 : def.emissiveIntensity; }
       const mat = new THREE.MeshStandardMaterial(params);
@@ -471,6 +482,16 @@ export function buildWorld(scene, world, reduceMotion, options) {
   buildSky(scene, world, atmosphere, base, warn);
 
   const colliders = [];
+  // Superset of `colliders`: EVERY box element's AABB, including ones the pack marked
+  // `collider: false` for thin/overhead set dressing (sidewalks, curbs, awnings — and,
+  // as ch1-apartment's grayboxing convention turned out to use it, the ceiling itself).
+  // `colliders` alone answers "does this block me sideways"; a pack author reasonably
+  // wants "no" for an overhead ceiling slab. But walk.js's capCeiling (BookWorld-zsx:
+  // ceiling jump-through fix) needs the OPPOSITE question — "is there a low ceiling
+  // above my head" — which must stay true regardless of that horizontal-collision
+  // opt-out. Keeping the two lists separate lets a ceiling be "walk under freely,
+  // never lets your HEAD through" without the pack declaring anything extra.
+  const overheadSolids = [];
   const glowSprites = [];
   const flickers = [];
   const groundMeshes = [];
@@ -527,14 +548,16 @@ export function buildWorld(scene, world, reduceMotion, options) {
       mesh.position.set(el.position[0], el.position[1], el.position[2]);
       mesh.rotation.y = el.yaw || 0;
       scene.add(mesh);
-      if (el.collider !== false) {
+      {
         const hw = size[0] / 2, hd = size[2] / 2, hh = size[1] / 2;
-        addCollider(
-          el.position[0] - hw, el.position[0] + hw,
-          el.position[2] - hd, el.position[2] + hd,
-          el.position[1] - hh, el.position[1] + hh,
-          el.id
-        );
+        const band = {
+          minX: el.position[0] - hw, maxX: el.position[0] + hw,
+          minZ: el.position[2] - hd, maxZ: el.position[2] + hd,
+          minY: el.position[1] - hh, maxY: el.position[1] + hh,
+          label: el.id
+        };
+        overheadSolids.push(band);
+        if (el.collider !== false) colliders.push(band);
       }
     } else if (el.type === 'plane' || el.type === 'emissiveQuad') {
       const material = getMaterial(el.material, size);
@@ -790,7 +813,7 @@ export function buildWorld(scene, world, reduceMotion, options) {
   }
 
   return {
-    colliders, bounds, update, elementsById, waterVolumes,
+    colliders, overheadSolids, bounds, update, elementsById, meshesById, waterVolumes,
     atmosphere, props, propsReady,
     setFog, setFogMode, setReflections, dispose,
     get reflectionsOn() { return reflections; },
