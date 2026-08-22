@@ -946,9 +946,15 @@ function init(world, base, spawnId, worldPath) {
   const cutscenesById = {};
   (world.cutscenes || []).forEach((c) => { cutscenesById[c.id] = c; });
 
+  // a cutscene may carry a `then` (same shape as a trigger's `link`) fired once the
+  // clip closes — the arrival-cutscene -> world-transition chain (dispatch call ->
+  // cutscene -> load the destination pack) without a separate zone the player could
+  // wander out of mid-clip.
+  let pendingCutsceneThen = null;
   function playCutscene(cutsceneId) {
     const c = cutscenesById[cutsceneId];
     if (!c) { announce(t('cutsceneMissing')); return; }
+    pendingCutsceneThen = c.then || null;
     suspendWalk();
     cutsceneVideo.src = base + c.video;
     if (c.poster) cutsceneVideo.poster = base + c.poster;
@@ -963,7 +969,13 @@ function init(world, base, spawnId, worldPath) {
     if (cutsceneOverlay.classList.contains('hidden')) return;
     cutsceneVideo.pause();
     cutsceneOverlay.classList.add('hidden');
-    resumeWalk();
+    const then = pendingCutsceneThen;
+    pendingCutsceneThen = null;
+    if (then && then.type === 'link' && then.toWorld) {
+      travelTo(then.toWorld, then.spawn, base);
+    } else {
+      resumeWalk();
+    }
   }
   cutsceneVideo.addEventListener('ended', closeCutscene, { signal });
   cutsceneVideo.addEventListener('error', () => {

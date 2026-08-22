@@ -299,9 +299,37 @@
         "type": "prose",
         "text": "Rain earlier; the asphalt still holds it. Your bike waits at the kerb, and ahead, Jax sits his own machine like he grew there. Patrol night. Ride the beacons, close the loop."
       }
+    },
+    {
+      "id": "dispatch-call-apartment",
+      "label": "Radio — new address",
+      "once": true,
+      "shape": "radius",
+      "position": [
+        46,
+        0,
+        -34
+      ],
+      "radius": 6,
+      "srHint": "Dispatch cuts back in with a new address — a walk-up on Maple Street. Press the interact key to take the call.",
+      "trigger": {
+        "type": "cutscene",
+        "cutsceneId": "arrival-maple-street"
+      }
     }
   ],
-  "cutscenes": [],
+  "cutscenes": [
+    {
+      "id": "arrival-maple-street",
+      "title": "Arrival — Maple Street walk-up",
+      "video": "../../scenes/manifest-a/cutscene.mp4",
+      "poster": null,
+      "then": {
+        "type": "link",
+        "toWorld": "../../../Series/Arcane_Protocol/outputs/book_1/bookworld/worlds/ch1-apartment/world.json"
+      }
+    }
+  ],
   "geometry": {
     "seed": 20260810,
     "envCapture": {
