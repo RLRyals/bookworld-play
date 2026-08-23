@@ -28,6 +28,7 @@
 //   walk.html?preload=0                  -> disable link-adjacent preload (A/B measuring)
 //   walk.html?fps=1                      -> on-screen fps readout
 //   walk.html?post=0                     -> bypass the post stack (debugging)
+//   walk.html?fpscap=30|60|0             -> override the tier's fps cap (0 = uncapped)
 import * as THREE from 'three';
 import { buildWorld } from './geometry.js';
 import { createPost } from './post.js';
@@ -46,6 +47,10 @@ const postEnabled = params.get('post') !== '0';
 const showFps = params.get('fps') === '1';
 const preloadEnabled = params.get('preload') !== '0';
 const tierParam = params.get('tier');
+// BookWorld-1f9: an explicit fps-cap override for measurement/debugging. Unset (null)
+// means "use the tier's own default" (see tierSettings) — this is not itself the knob
+// most players ever touch, `?tier=` and the on-screen toggle are.
+const fpscapParam = params.has('fpscap') ? (parseInt(params.get('fpscap'), 10) || 0) : null;
 const lang = resolveLang('en');
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -127,14 +132,36 @@ function showLoadError(message) {
 // sees the same world, just without the expensive screen-space luxuries.
 const TIER_ORDER = ['low', 'medium', 'high'];
 
+// BookWorld-1f9 (Rebecca's iGPU pegged at 100% on her discrete-GPU laptop's Intel
+// GPU 0 — the reference min-spec device, since that IS what most players have):
+// 100% GPU utilization alone is not the defect, an uncapped rAF loop rendering as many
+// frames as the card can produce is normal. The defect is only if frame time suffers or
+// the machine is made to churn out frames nobody's monitor can even show. Two knobs:
+//   - pixelRatio was clamped to `min(dpr, 2)` on high, which is a no-op on a lot of
+//     today's high-DPI laptop panels (dpr 2-3) — tightened to 1.5, the bead's own
+//     example, since the visual gain from 1.5->2/3 is marginal against the fill-rate
+//     cost of every post pass (post.js runs its whole bloom chain at this resolution).
+//   - fpsCap bounds the number of frames the tier is ALLOWED to render regardless of
+//     how fast the GPU could go — most panels are 60 Hz, so a 90/120/144 Hz-capable iGPU
+//     was doing 1.5-2x the necessary work (and heat/fan noise) for zero visible benefit.
+//     low caps tighter still: a machine weak enough to need the low rig is also the one
+//     where every spare millisecond matters most for staying responsive under substeps.
 function tierSettings(tier) {
   if (tier === 'low') {
-    return { pixelRatio: 1, bloom: false, samples: 0, reflections: false, fog: 'linear', cubeSize: 64 };
+    return { pixelRatio: 1, bloom: false, samples: 0, reflections: false, fog: 'linear', cubeSize: 64, fpsCap: 30 };
   }
   if (tier === 'medium') {
-    return { pixelRatio: Math.min(devicePixelRatio || 1, 1.25), bloom: true, samples: 2, reflections: true, fog: 'exp2', cubeSize: 64 };
+    return { pixelRatio: Math.min(devicePixelRatio || 1, 1.25), bloom: true, samples: 2, reflections: true, fog: 'exp2', cubeSize: 64, fpsCap: 60 };
   }
-  return { pixelRatio: Math.min(devicePixelRatio || 1, 2), bloom: true, samples: 4, reflections: true, fog: 'exp2', cubeSize: 128 };
+  return { pixelRatio: Math.min(devicePixelRatio || 1, 1.5), bloom: true, samples: 4, reflections: true, fog: 'exp2', cubeSize: 128, fpsCap: 60 };
+}
+
+// `?fpscap=` always wins when present (0 = uncapped, for measurement); otherwise the
+// tier's own default above applies. A single helper because `applyTier()` re-derives
+// tierNow on every tier change and both call sites must resolve the override the same way.
+function resolveFpsCap(tierFpsCap) {
+  if (fpscapParam != null) return fpscapParam > 0 ? fpscapParam : 0;
+  return tierFpsCap;
 }
 
 const perf = {
@@ -2040,6 +2067,15 @@ function init(world, base, spawnId, worldPath, evidence) {
   let resolveFirstFrame;
   const firstFrame = new Promise((r) => { resolveFirstFrame = r; });
 
+  // BookWorld-1f9: fps cap. rAF itself keeps ticking every vsync (input polling and the
+  // dt-based physics/camera-smoothing stay exactly as responsive as before — only the
+  // GPU-heavy calls, built.update()'s scene draw and post.render(), are skipped when the
+  // tier's cap says this frame is early). That's why this throttles duty cycle/heat on a
+  // high-refresh panel without adding the input lag a lower-frequency rAF would.
+  // Never active during the boot probe (see `perf.probeDone` below): the probe has to see
+  // the machine's real per-frame cost to classify it, not a capped, pre-throttled one.
+  let lastRenderTime = 0;
+
   function stepPlayer(dt) {
     // mounted is a third movement mode beside walking and swimming: it swaps what the
     // keys mean, keeps gravity, and redefines what the body is (radius/step) — the seam
@@ -2212,13 +2248,23 @@ function init(world, base, spawnId, worldPath, evidence) {
       fogNeedsReset = false;
     }
 
-    built.update(t, camera, rend);
-    post.render(t);
+    // BookWorld-1f9: the fps cap gate. `resolveFpsCap` folds in the `?fpscap=` override;
+    // a cap of 0 (either the override or a tier that ships none) always renders. The boot
+    // probe (below `perf.probeDone`) is exempt on purpose — see the comment above
+    // `lastRenderTime`'s declaration.
+    const now = performance.now();
+    const capMs = perf.probeDone ? resolveFpsCap(tierNow.fpsCap) : 0;
+    const dueToRender = !capMs || (now - lastRenderTime) >= (1000 / capMs) - 1;
+
+    if (dueToRender) {
+      lastRenderTime = now;
+      built.update(t, camera, rend);
+      post.render(t);
+      fpsFrames++;
+    }
 
     if (frameCount === 1 && resolveFirstFrame) { resolveFirstFrame(); resolveFirstFrame = null; }
 
-    fpsFrames++;
-    const now = performance.now();
     if (now - fpsSince >= 500) {
       fps = (fpsFrames * 1000) / (now - fpsSince);
       fpsFrames = 0; fpsSince = now;
