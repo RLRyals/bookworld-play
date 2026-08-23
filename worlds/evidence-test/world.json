@@ -2,10 +2,11 @@
   "id": "evidence-test-room",
   "defaultLang": "en",
   "title": "Evidence-cataloging mechanic — engine QA fixture",
-  "description": "A small gray-box room used only to exercise the evidence-cataloging mechanic (BookWorld-5mv): walk to a point, inspect/collect, entry appears in the catalog list. No story canon — engine test data only.",
+  "description": "A small gray-box room used to exercise the evidence-cataloging mechanic (BookWorld-5mv) and textured-material support (BookWorld-kya): walk to a point, inspect/collect, entry appears in the catalog list. No story canon — engine test data only.",
   "worldTexture": [
     "engine QA fixture — not tied to any story canon",
-    "exercises every evidence.json branch: two spatial points (one of them a co-located pair), one equipment item, one non-spatial case fact"
+    "exercises every evidence.json branch: two spatial points (one of them a co-located pair), one equipment item, one non-spatial case fact",
+    "exercises textured materials (BookWorld-kya): floor-tile.png tiles in XZ at tileScale 2 (world 6x4 -> 3x2 repeats), wall-grid.png tiles upright on box faces at tileScale 1 (6m walls show 6 repeats, the 4m-deep side walls show 4 — same material, correct per-face scale), cabinet-swirl.png proves a third simultaneous texture, brokenTex deliberately points at a nonexistent file to prove the graceful fallback (flat color + one console warning, never black/broken)"
   ],
   "spawn": {
     "position": [0, 0, -0.4],
@@ -34,11 +35,12 @@
     "seed": 20260822,
     "envCapture": { "position": [0, 1.6, -2] },
     "materials": {
-      "wall": { "kind": "flat", "color": "#d9d9d9", "roughness": 0.9 },
+      "wall": { "kind": "flat", "color": "#d9d9d9", "roughness": 0.9, "texture": "textures/wall-grid.png", "tileScale": 1 },
       "ceiling": { "kind": "flat", "color": "#b8b8bd", "roughness": 0.95 },
-      "floor": { "kind": "flat", "color": "#c9b98f", "roughness": 0.95 },
+      "floor": { "kind": "flat", "color": "#c9b98f", "roughness": 0.95, "texture": "textures/floor-tile.png", "tileScale": 2 },
       "desk": { "kind": "flat", "color": "#8c7359", "roughness": 0.85 },
-      "cabinet": { "kind": "flat", "color": "#6b7c8c", "roughness": 0.8 }
+      "cabinet": { "kind": "flat", "color": "#6b7c8c", "roughness": 0.8, "texture": "textures/cabinet-swirl.png", "tileScale": 0.6 },
+      "brokenTex": { "kind": "flat", "color": "#ff6a3d", "roughness": 0.7, "texture": "textures/does-not-exist.png", "tileScale": 1 }
     },
     "elements": [
       { "id": "floor", "type": "plane", "position": [0, 0, -2], "size": [6, 4], "orientation": "horizontal", "material": "floor", "ground": true },
@@ -48,7 +50,12 @@
       { "id": "wall-w", "type": "box", "position": [-3, 1.3, -2], "size": [0.12, 2.6, 4], "material": "wall" },
       { "id": "wall-e", "type": "box", "position": [3, 1.3, -2], "size": [0.12, 2.6, 4], "material": "wall" },
       { "id": "desk", "type": "box", "position": [1.5, 0.35, -1.5], "size": [0.9, 0.7, 0.5], "material": "desk" },
-      { "id": "cabinet", "type": "box", "position": [-1.5, 0.5, -1.5], "size": [0.6, 1, 0.4], "material": "cabinet" }
+      { "id": "cabinet", "type": "box", "position": [-1.5, 0.5, -1.5], "size": [0.6, 1, 0.4], "material": "cabinet" },
+      { "id": "broken-tex-block", "type": "box", "position": [1.5, 0.75, -1.5], "size": [0.2, 0.1, 0.2], "material": "brokenTex", "collider": false }
+    ],
+    "lights": [
+      { "id": "ambient", "type": "ambient", "color": "#ffffff", "intensity": 0.55 },
+      { "id": "room-light", "type": "point", "color": "#fff4e0", "position": [0, 2.3, -2], "intensity": 140, "distance": 12, "decay": 2 }
     ]
   },
   "triggers": [],

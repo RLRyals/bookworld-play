@@ -29,7 +29,7 @@
 //   * `props` — glTF models placed by the pack, with AABB collision
 import * as THREE from 'three';
 import { GLTFLoader } from './lib/GLTFLoader.js';
-import { resolveTexture, applyWorldUVs, isSharedTexture } from './textures.js';
+import { resolveTexture, applyWorldUVs, isSharedTexture, isTextureFailed } from './textures.js';
 
 // ---------- deterministic RNG so screenshots are reproducible across runs ----------
 function mulberry32(seed) {
@@ -220,6 +220,16 @@ function resolveColor(def, palette) {
 // `tint` is the multiplier applied on top. Without `tint` a textured material multiplies
 // by white, so what you see is what the generator drew — otherwise every pack would have
 // to remember to null out `color` and the double-darkening would look like a bug.
+//
+// A path that 404s must not leave the material half-configured — a `map` that never
+// finished loading paints whatever the GPU's texture unit last held (leftover state from
+// an unrelated draw call), not a color anyone chose. Same graceful-404 philosophy as
+// evidence.json's auto-load: the pack author's `color` shows up instead, plus one console
+// warning, never a broken/black material. Since the fetch is async, `onImageError` — which
+// `resolveTexture` calls either synchronously (this exact path is already known-bad from
+// an earlier element) or later once the real fetch settles — is what unwinds `mat` back to
+// flat color; the `isTextureFailed` check below only decides whether it's safe to assign
+// `map` optimistically in the meantime.
 function applyTexture(mat, def, ctx) {
   if (!def.texture) return mat;
   if (!('map' in mat)) return mat;
@@ -227,8 +237,17 @@ function applyTexture(mat, def, ctx) {
     { base: def.color || '#8a8a8a', seed: def.textureSeed == null ? ctx.textureSeed : def.textureSeed },
     def.textureOptions || {}
   );
-  mat.map = resolveTexture(def.texture, opts, ctx.base, ctx.warn);
-  if (mat.color) mat.color.set(def.tint || '#ffffff');
+  const onImageError = (msg) => {
+    ctx.warn(msg);
+    mat.map = null;
+    if (mat.color) mat.color.set(def.color || '#8a8a8a');
+    mat.needsUpdate = true;
+  };
+  const tex = resolveTexture(def.texture, opts, ctx.base, onImageError);
+  if (!isTextureFailed(tex)) {
+    mat.map = tex;
+    if (mat.color) mat.color.set(def.tint || '#ffffff');
+  }
   mat.needsUpdate = true;
   return mat;
 }

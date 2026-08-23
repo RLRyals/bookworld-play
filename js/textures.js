@@ -318,26 +318,61 @@ const GENERATORS = {
 export const GENERATOR_NAMES = Object.keys(GENERATORS);
 
 const cache = new Map();
+// A broken image path is requested by every material/element that references it — the
+// FIRST caller triggers the actual fetch, later callers hit `cache` and get the same
+// Texture instance back before the fetch has even settled. Both cases need their own
+// `onError` fired so EACH consumer's material can fall back individually (BookWorld-kya:
+// this used to only run once, for the original caller — every other consumer of the same
+// broken path silently kept a never-loaded map assigned, which renders as whatever the
+// GPU's texture unit last held, not the pack's declared color). `pendingListeners` fans
+// the eventual result out to every caller that arrived before the load settled;
+// `failedTextures` lets a caller that arrives AFTER it's known-bad detect that
+// synchronously instead of waiting on a callback that will never fire again.
+const pendingListeners = new Map(); // key -> [onError, ...]
+const failedTextures = new WeakSet();
 
 function isImagePath(spec) {
   return /[\\/]/.test(spec) || /\.(png|jpe?g|webp|avif|ktx2?|bmp|gif)$/i.test(spec);
 }
 
+// True once `resolveTexture` has already logged this exact texture as a failed image
+// load — lets a caller that reuses a cached-but-broken texture fall back immediately
+// instead of registering for a callback that already fired for someone else.
+export function isTextureFailed(tex) {
+  return failedTextures.has(tex);
+}
+
 // Returns a THREE.Texture for a material's `texture` field. `spec` is either a
 // generator name or a pack-relative image path; `base` is the pack folder URL.
-// Never throws for a bad path — an image that fails to load leaves the material on its
-// `color` fallback and logs, because one missing texture must not blank a whole world.
+// Never throws for a bad path — an image that fails to load calls `onError` (every
+// caller gets its own call, see `pendingListeners` above) so the material can fall back
+// to its `color`, because one missing texture must not blank a whole world.
 export function resolveTexture(spec, opts, base, onError) {
   const key = JSON.stringify([spec, opts, base]);
-  if (cache.has(key)) return cache.get(key);
+  if (cache.has(key)) {
+    const tex = cache.get(key);
+    if (failedTextures.has(tex)) {
+      if (onError) onError(`texture image failed to load: ${base + spec}`);
+    } else if (pendingListeners.has(key) && onError) {
+      pendingListeners.get(key).push(onError);
+    }
+    return tex;
+  }
 
   let tex;
   if (isImagePath(spec)) {
+    if (onError) pendingListeners.set(key, [onError]);
     tex = new THREE.TextureLoader().load(
       base + spec,
+      () => { pendingListeners.delete(key); },
       undefined,
-      undefined,
-      () => { if (onError) onError(`texture image failed to load: ${base + spec}`); }
+      () => {
+        failedTextures.add(tex);
+        const listeners = pendingListeners.get(key) || [];
+        pendingListeners.delete(key);
+        const msg = `texture image failed to load: ${base + spec}`;
+        for (const fn of listeners) fn(msg);
+      }
     );
   } else {
     const gen = GENERATORS[spec];
