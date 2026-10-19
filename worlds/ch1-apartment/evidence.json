@@ -21,14 +21,14 @@
       },
       "position": {
         "room": "room-kitchen",
-        "coordinates": [7.45, 0, -6.68],
-        "placementBasis": "RULED by Rebecca 2026-10-19 (supersedes the 2026-08-22 coordinate [7.4, 0, -6.9]): \"I intended for the kitchen to be a cramped space and Mal to keep hitting her elbow on the cabinets trying to scan him\" and \"I imagined him laying the other direction with his feet showing first.\" After a first 1.0 m version she ruled \"I think the kitchen is too tiny now ... I don't think a body and Mal would both fit ... make the kitchen a bit bigger but not as big as before.\" The peninsula moved 0.82 m east (gen-ch1-apartment.mjs v12b): aisle ~1.40 m between the peninsula countertop (x 6.85) and the east counter/fridge/stove run (x 8.25). He lies along that aisle on his back, about half its width (x ~7.18-7.72): ~0.33 m to the peninsula, ~0.53 m to the fridge/stove side, where Mal edges past sideways (chapter lines 49-57). 'The counter' = the peninsula; 'the far wall' = the east counter run, as ruled 2026-08-22.",
+        "coordinates": [7.45, 0, -6.45],
+        "placementBasis": "RULED by Rebecca 2026-10-19 (supersedes the 2026-08-22 coordinate [7.4, 0, -6.9]): \"I intended for the kitchen to be a cramped space and Mal to keep hitting her elbow on the cabinets trying to scan him\" and \"I imagined him laying the other direction with his feet showing first.\" After a first 1.0 m version she ruled \"I think the kitchen is too tiny now ... I don't think a body and Mal would both fit ... make the kitchen a bit bigger but not as big as before.\" The peninsula moved 0.82 m east (gen-ch1-apartment.mjs v12b): aisle ~1.40 m between the peninsula countertop (x 6.85) and the east counter/fridge/stove run (x 8.25). He lies along that aisle on his back, about half its width (x ~7.10-7.80 with his arms on the floor at his sides): ~0.25 m to the peninsula, ~0.45 m to the fridge/stove side; v2 verdict 10-19 (\"his head is in the cabinet and his arms are off the ground\"): moved 0.23 m south so his head (top y 7.45) lies on open floor ~0.19 m in front of the sink-run toe-kick, feet just past the peninsula's south end, where Mal edges past sideways (chapter lines 49-57). 'The counter' = the peninsula; 'the far wall' = the east counter run, as ruled 2026-08-22.",
         "orientation": {
           "lies": "on his back, flat on the floor, along the aisle (north-south)",
           "feet": "south, toward the kitchen entrance at the peninsula's south end (y 5.68): the first thing seen on entering",
           "head": "north, toward the sink / north counter",
-          "extent_y": [5.8, 7.55],
-          "extent_x_approx": [7.18, 7.72]
+          "extent_y": [5.49, 7.45],
+          "extent_x_approx": [7.1, 7.8]
         }
       },
       "catalogEntry": "SUBJECT: male, approx. 60s. Location: kitchen floor, wedged between peninsula and far wall. Lividity consistent with current positioning. No visible trauma. Scan coverage: torso / hands / face / lower extremities documented. Overall scene documentation: 87%, gap in forearm/lower-extremity coverage (scanner freeze, ~2-3s)."
@@ -44,7 +44,7 @@
       },
       "position": {
         "room": "room-kitchen",
-        "coordinates": [7.45, 0, -6.68],
+        "coordinates": [7.45, 0, -6.45],
         "bodyRegion": "left forearm, inner surface",
         "placementBasis": "Co-located with victim-body (see that item's openQuestion on exact wall); this is a body-relative detail, not an independent world point."
       },
@@ -62,7 +62,7 @@
       },
       "position": {
         "room": "room-kitchen",
-        "coordinates": [7.45, 0, -6.68],
+        "coordinates": [7.45, 0, -6.45],
         "bodyRegion": "right hand, between fingers II-III",
         "placementBasis": "Co-located with victim-body."
       },
