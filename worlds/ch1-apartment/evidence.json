@@ -1,0 +1,116 @@
+{
+  "id": "arcane-b1-ch1-apartment-evidence",
+  "world": "arcane-b1-ch1-apartment",
+  "description": "Evidence-content data pack for the Ch.1 apartment crime scene, authored from manuscript prose (manuscript-is-canon) for a walk-to-point -> inspect/collect -> catalog-list mechanic. Positions are keyed to worlds/ch1-apartment/world.json's coordinate system and room-trigger ids (world.json is READ-ONLY / locked, commits dad3d7b..9e2df7a; not modified by this pack).",
+  "chapterSource": "outputs/book_1/chapters/chapter_01_the_first_call.md",
+  "bead": "arc-dlo (fiction lane) -> consumed by BookWorld-5mv (engine lane)",
+  "stagingContext": [
+    "Per bead arc-3wd (08-22 ruling): during the body-loading beats Mal + Jax watch from the LIVING ROOM, not the hallway (Jax pulls Mal out of the med techs' way). The med-tech transport tank arrives at scene END, after evidence collection is complete -- it is a staging/cutscene beat, not a catalogable evidence item, and is intentionally NOT represented as an item in this pack.",
+    "Mal's documentation score in the prose (87%, with a coverage gap from a 2-3 second freeze over the subdermal marking) is a scene-level mechanic/score signal, not a physical evidence object -- also intentionally not represented as an item. Flagging here so the engine lane knows it's a known, sourced number if a scoring mechanic wants it: chapter_01_the_first_call.md, \"My AR scores the documentation at 87%... Thirteen percent of this scene is gone.\""
+  ],
+  "items": [
+    {
+      "id": "victim-body",
+      "name": "The deceased (locked visual anchor \"K\")",
+      "visualAnchor": "K",
+      "itemType": "evidence",
+      "description": "Male, mid-sixties, face slack, on the kitchen floor. Full-body scanner pass: torso, hands, face -- lividity consistent with current positioning, no visible trauma; shoes, ankles, lower calves, soles and sock line scanned clean. Positioned in the gap between the peninsula counter and the kitchen's far wall, in a space the prose describes as barely enough room for the body and one Runner with a scanner.",
+      "source": {
+        "file": "outputs/book_1/chapters/chapter_01_the_first_call.md",
+        "excerpt": "\"One entrance. A peninsula countertop cutting the space nearly in half. The body is on the floor between the counter and the far wall. Male, mid-sixties, face slack. Barely room for him and a Runner with a scanner.\" ... \"Lividity consistent with current positioning. No visible trauma.\" ... \"The kitchen, the counter, the gap on the floor where the body lay.\""
+      },
+      "position": {
+        "room": "room-kitchen",
+        "coordinates": [7.52, 0, -6.68],
+        "placementBasis": "RULED by Rebecca 2026-10-19 (supersedes the 2026-08-22 coordinate [7.4, 0, -6.9]): \"I intended for the kitchen to be a cramped space and Mal to keep hitting her elbow on the cabinets trying to scan him\" and \"I imagined him laying the other direction with his feet showing first.\" The peninsula moved 1.2 m east (gen-ch1-apartment.mjs v12), leaving a ~1.0 m aisle between the peninsula countertop (x 7.23) and the east counter/fridge/stove run (x 8.25-8.28). He lies along that aisle, taking about half its width (x ~7.27-7.77), so there is barely room to edge past him sideways (chapter lines 49-57). 'The counter' = the peninsula; 'the far wall' = the east counter run, as ruled 2026-08-22.",
+        "orientation": {
+          "lies": "on his back, flat on the floor, along the aisle (north-south)",
+          "feet": "south, toward the kitchen entrance at the peninsula's south end (y 5.68): the first thing seen on entering",
+          "head": "north, toward the sink / north counter",
+          "extent_y": [5.8, 7.55],
+          "extent_x_approx": [7.27, 7.77]
+        }
+      },
+      "catalogEntry": "SUBJECT: male, approx. 60s. Location: kitchen floor, wedged between peninsula and far wall. Lividity consistent with current positioning. No visible trauma. Scan coverage: torso / hands / face / lower extremities documented. Overall scene documentation: 87%, gap in forearm/lower-extremity coverage (scanner freeze, ~2-3s)."
+    },
+    {
+      "id": "subdermal-marking",
+      "name": "Subdermal geometric marking, left forearm",
+      "itemType": "evidence",
+      "description": "A geometric pattern beneath the skin of the inner left forearm -- not ink, not a scar, a subtle distortion in tissue visible only under the scanner's enhanced imaging. Mal privately recognizes it as a mage-family subdermal enchantment (it echoes her own childhood marking, done by her mother at age six) but officially tags it in the record as non-pathological, a deliberately vague call meant to avoid routing the case to a mage liaison.",
+      "source": {
+        "file": "outputs/book_1/chapters/chapter_01_the_first_call.md",
+        "excerpt": "\"A geometric pattern beneath the skin. Not ink. Not a scar. A subtle distortion in the tissue, visible in the scanner's enhanced imaging.\" ... \"A subdermal enchantment. Mage family. This man had people who would have wanted to know.\" ... \"'Subcutaneous irregularity, non-pathological.' My voice is even. The AR tags it green. Standard notation. Nothing that triggers a follow-up. Nothing that routes to a mage liaison.\""
+      },
+      "position": {
+        "room": "room-kitchen",
+        "coordinates": [7.52, 0, -6.68],
+        "bodyRegion": "left forearm, inner surface",
+        "placementBasis": "Co-located with victim-body (see that item's openQuestion on exact wall); this is a body-relative detail, not an independent world point."
+      },
+      "catalogEntry": "SCAN NOTATION (as filed): 'Subcutaneous irregularity, non-pathological.' Tagged green. No follow-up routed.",
+      "trueNature": "Not filed in the record -- Mal's private read, grounded in prose: a mage-family subdermal enchantment. Included here for narrative-fidelity / dramatic-irony use if the engine lane wants a two-layer reveal (official tag vs. what Mal actually knows); the catalogEntry field above is what her glasses UI would show in-fiction."
+    },
+    {
+      "id": "crumpled-tissue",
+      "name": "Crumpled tissue, right hand",
+      "itemType": "evidence",
+      "description": "A crumpled tissue wedged between the second and third fingers of the deceased's right hand, spotted by Jax from the doorway ('Hand. Something between the fingers.') and confirmed by Mal's scanner. She collects it.",
+      "source": {
+        "file": "outputs/book_1/chapters/chapter_01_the_first_call.md",
+        "excerpt": "\"'Hand. Something between the fingers.' ... A crumpled tissue wedged between the second and third fingers of the right hand. I collect it.\""
+      },
+      "position": {
+        "room": "room-kitchen",
+        "coordinates": [7.52, 0, -6.68],
+        "bodyRegion": "right hand, between fingers II-III",
+        "placementBasis": "Co-located with victim-body."
+      },
+      "catalogEntry": "ITEM COLLECTED: tissue, crumpled, right hand between fingers II-III. Flagged on partner observation, confirmed by scanner, logged and collected."
+    },
+    {
+      "id": "living-room-shelf-survey",
+      "name": "Living-room shelf -- framed photographs",
+      "itemType": "evidence",
+      "description": "A shelf of framed photos: the man in younger years, arm around a woman with dark hair, children in two of the frames. Mal's post-scene living-room survey finds no ritual indicators anywhere in the room -- no altar, no chalk marks, no medallions or enchanted objects on the shelves -- consistent with world.json's living-room prop set (couch, chair, ottoman, rug; nothing altar-like).",
+      "source": {
+        "file": "outputs/book_1/chapters/chapter_01_the_first_call.md",
+        "excerpt": "\"Living room. Shelf of framed photos. The man in younger years, arm around a woman with dark hair. Children in two of the frames. No ritual indicators, no signs of magical involvement, no evidence of violence beyond a life ending. No altar. No chalk marks. No medallions or enchanted objects on the shelves. Nothing in this apartment that says mage except the mark beneath his skin.\""
+      },
+      "position": {
+        "room": "room-living",
+        "coordinates": [0.16, 1.275, -6.475],
+        "placementBasis": "Exact match to world.json geometry element id 'photo-shelf' (west wall, behind couch) -- locked layout, position taken directly from world.json, not interpreted."
+      },
+      "catalogEntry": "SURVEY: framed photographs -- subject (younger), woman (dark hair), children (2 frames). No ritual indicators. No altar, chalk marks, medallions, or enchanted objects present anywhere in residence."
+    },
+    {
+      "id": "forensic-kit-equipment",
+      "name": "Forensic kit (\"E\") -- Mal's equipment",
+      "visualAnchor": "E",
+      "itemType": "equipment",
+      "description": "Mal's own carried kit: the Slick Tin (polymer sealant, thumbed onto her hands on the landing before entry) and the Hawk (drone scanner, launched from a magnetic cradle on her bag strap to sweep the apartment and feed the wireframe/AR overlay). Decision for this pack: this is player-carried equipment, not a scene evidence point -- it is never left in the world for a player to walk up to and inspect; it travels with Mal.",
+      "source": {
+        "file": "outputs/book_1/chapters/chapter_01_the_first_call.md",
+        "excerpt": "\"Slick tin first. I pull it from my kit and thumb the lid on the landing...\" ... \"Hawk next. The drone sits in its magnetic cradle on my bag strap... It rises to survey height and begins the grid pattern, feeding aerial footage and wireframe overlay into my display.\""
+      },
+      "position": null,
+      "authoringNote": "Not an open canon question -- explicit call made per bead instructions: kit contents are player equipment (deployed on the landing, carried through the scene), not a fixed world/scene item. If the engine lane wants an equipment-status HUD element (Slick Tin cure state, Hawk grid-coverage %) rather than a walk-to-inspect prop, this entry is the source.",
+      "catalogEntry": null
+    },
+    {
+      "id": "apartment-tech-absence",
+      "name": "Apartment technology survey -- no Church network presence",
+      "itemType": "evidence",
+      "description": "The apartment holds no personal Church technology: no network terminal, no monitoring panel. The dispatch that sent Mal and Jax was triggered by a building relay biometric dropout -- infrastructure-level detection, not anything the deceased owned. Prose frames this as significant: a man who kept the grid out of his home, tracked anyway.",
+      "source": {
+        "file": "outputs/book_1/chapters/chapter_01_the_first_call.md",
+        "excerpt": "\"Who called it in? There was nothing in the apartment tied to the network.\" \"Building relay. Biometric dropout.\" ... \"Building infrastructure. Not personal equipment. The apartment was bare of Church technology. No network terminal, no monitoring panel. A man who kept the grid out of his home, and the grid watched him anyway. Tracked his heartbeat through the walls.\""
+      },
+      "position": null,
+      "representation": "non-spatial",
+      "authoringNote": "RULED by Rebecca 2026-08-22: surface as a NON-SPATIAL case fact -- a HUD/dialogue popup when the scan completes, no coordinates, no walk-to-inspect point. Position stays null by design.",
+      "catalogEntry": "SCAN: no personal network terminal or monitoring hardware detected in residence. Dispatch trigger: building relay, biometric dropout (infrastructure-level, not resident equipment)."
+    }
+  ]
+}
